@@ -1,0 +1,4 @@
+customtkinter
+psycopg2-binary
+pillow
+scapy
