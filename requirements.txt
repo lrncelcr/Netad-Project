@@ -1,6 +1,8 @@
-customtkinter>=5.2.0
-psycopg2-binary>=2.9.9
-opencv-python>=4.9.0
-Pillow>=10.0.0
-scapy>=2.5.0
-python-dotenv>=1.0.0
+flask
+psycopg2-binary
+python-dotenv
+scapy
+opencv-python-headless
+gunicorn
+Pillow
+customtkinter
