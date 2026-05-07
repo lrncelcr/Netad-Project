@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netad Web Security</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        
+        /* 1. Primary Replicated Theme Colors */
+        :root {
+            --bg-dark: #0A0A0A;
+            --panel-dark: #111111;
+            --border-dark: #1E1E1E;
+            --text-muted: #555555;
+            --text-bright: #CCCCCC;
+            --main-green: #2ECC71; /* Accent Color */
+            --alert-red: #E74C3C;
+            --alert-yellow: #F39C12;
+            --alert-blue: #3498DB;
+        }
+
+        body { background-color: var(--bg-dark); color: var(--text-bright); font-family: 'Inter', sans-serif; letter-spacing: -0.02em; }
+        .log-box { height: 400px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 13px; scrollbar-width: thin; scrollbar-color: #222 transparent; }
+        .success { color: var(--main-green); }
+        .critical { color: var(--alert-red); }
+        .alert { color: var(--alert-yellow); }
+        .info { color: var(--alert-blue); }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-[1500px] mx-auto">
+        
+        <header class="flex justify-between items-center mb-10 pb-5 border-b border-zinc-800">
+            <div class="flex items-center gap-2">
+                <span class="text-3xl font-extrabold" style="color: var(--main-green);">🛡️ NETAD</span>
+                <span class="text-xl font-medium" style="color: var(--text-muted);">– CCTV Security Web Dashboard</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div id="clock" class="font-mono text-sm" style="color: var(--text-muted);"></div>
+                <div class="text-sm font-bold flex items-center gap-1.5">👤 {{ session.get('username', 'Guest') }}</div>
+                <button id="logout" class="bg-zinc-800 text-xs px-4 py-2 rounded-lg font-bold hover:bg-red-900 transition-colors">⏻ Logout</button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-5 mb-8">
+            <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900 text-center">
+                <div id="stat-critical" class="text-5xl font-black" style="color: var(--alert-red);">0</div>
+                <div class="text-xs font-bold uppercase mt-3" style="color: var(--text-muted);">Critical Events</div>
+            </div>
+            <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900 text-center">
+                <div id="stat-total" class="text-5xl font-black" style="color: var(--alert-yellow);">0</div>
+                <div class="text-xs font-bold uppercase mt-3" style="color: var(--text-muted);">Total Alerts</div>
+            </div>
+            <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900 text-center">
+                <div id="stat-logins" class="text-5xl font-black" style="color: var(--alert-blue);">0</div>
+                <div class="text-xs font-bold uppercase mt-3" style="color: var(--text-muted);">Login Attempts</div>
+            </div>
+            <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900 text-center">
+                <div id="stat-snaps" class="text-5xl font-black" style="color: var(--text-muted);">0</div>
+                <div class="text-xs font-bold uppercase mt-3" style="color: var(--text-muted);">Snapshots</div>
+            </div>
+            <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900 text-center">
+                <div class="text-5xl font-black" style="color: var(--main-green);">ARMED</div>
+                <div class="text-xs font-bold uppercase mt-3" style="color: var(--text-muted);">System Status</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <div class="xl:col-span-2">
+                <div class="bg-zinc-950 p-0 rounded-xl border border-zinc-900 overflow-hidden aspect-[16/10] relative">
+                    <img id="video-stream" src="/video_feed" class="w-full h-full object-cover" onerror="handleStreamError(this)">
+                    <div class="absolute top-5 left-5 bg-red-600 text-white px-3 py-1 rounded text-[11px] font-bold animate-pulse">REC</div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900">
+                    <h3 class="text-sm font-bold mb-5 flex items-center gap-2">🚨 SECURITY EVENTS</h3>
+                    <div id="log-list" class="log-box space-y-4 text-xs">
+                        <div class="text-zinc-700 italic">Waiting for detector stream...</div>
+                    </div>
+                </div>
+
+                <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900">
+                    <h3 class="text-sm font-bold mb-5 flex items-center gap-2">🔑 LOGIN HISTORY</h3>
+                    <div id="login-log-list" class="log-box space-y-4 text-xs" style="height: 250px;">
+                        <div class="text-zinc-700 italic">Waiting for login records...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Live Clock
+        function tickClock() { document.getElementById('clock').innerText = new Date().toLocaleString('en-CA', { hour12: false }).replace(',', '   '); }
+        setInterval(tickClock, 1000); tickClock();
+
+        // 2. Data Fetching API Calls
+        async function fetchData(url, callback) { try { const res = await fetch(url); const data = await res.json(); callback(data); } catch (e) { console.error(`Error fetching ${url}:`, e); } }
+
+        // 3. Stats Update
+        function updateStats(data) {
+            if (data.error) return;
+            document.getElementById('stat-critical').innerText = data.critical;
+            document.getElementById('stat-total').innerText = data.total;
+            document.getElementById('stat-logins').innerText = data.logins;
+            document.getElementById('stat-snaps').innerText = data.snaps;
+        }
+
+        // 4. Security Logs Update (Replicated Layout)
+        function updateSecurityLogs(logs) {
+            if (!Array.isArray(logs)) return;
+            const container = document.getElementById('log-list');
+            container.innerHTML = logs.map(l => {
+                const tag = { Critical: 'critical', Alert: 'alert' }[l.stat] || 'info';
+                return `
+                    <div class="flex items-start gap-2.5">
+                        <span class="font-bold timestamp text-zinc-600">[${l.ts.split(' ')[1]}]</span>
+                        <div class="flex-1">
+                            <span class="font-bold text-zinc-300 font-mono">${l.ip}</span><br>
+                            <span class="text-zinc-400">${l.act}</span> → <span class="font-bold ${tag}">${l.stat}</span>
+                        </div>
+                    </div>`;
+            }).join('') || '<div class="text-zinc-700 italic">No network events recorded.</div>';
+        }
+
+        // 5. Login History Update (Replicated Layout)
+        function updateLoginLogs(logs) {
+            if (!Array.isArray(logs)) return;
+            const container = document.getElementById('login-log-list');
+            container.innerHTML = logs.map(l => {
+                const isSuccess = l.status === 'Success';
+                const tag = isSuccess ? 'success' : 'critical';
+                const reason = l.reason ? `<span class="text-zinc-600"> (${l.reason})</span>` : '';
+                return `
+                    <div class="flex items-start gap-2.5">
+                        <span class="font-bold timestamp text-zinc-600">[${l.ts.split(' ')[1]}]</span>
+                        <div class="flex-1">
+                            <span class="font-bold font-mono ${tag}">${l.username}</span> 
+                            <span class="text-zinc-500">from ${l.ip}</span><br>
+                            <span class="${tag} font-bold">${l.status}</span>${reason}
+                        </div>
+                    </div>`;
+            }).join('') || '<div class="text-zinc-700 italic">No login records found.</div>';
+        }
+
+        // 6. Handle Offline Stream (Replicated Graphic logic)
+        function handleStreamError(img) {
+            img.onerror = null; // Prevent loops
+            img.src = 'https://via.placeholder.com/640x400/0A0A0A/CCCCCC?text=Waiting+for+Signal...'; // Minimal replacement
+            img.classList.add('opacity-30');
+        }
+
+        // 7. Logout Logic
+        document.getElementById('logout').addEventListener('click', async () => {
+            const res = await fetch('/api/logout', { method: 'POST' });
+            if (res.ok) window.location.href = '/'; // Refresh triggers the login redirect if needed
+        });
+
+        // 8. Auto-Refresh Loop (5 Seconds)
+        function refreshAll() {
+            fetchData('/api/stats', updateStats);
+            fetchData('/api/logs', updateSecurityLogs);
+            fetchData('/api/login_logs', updateLoginLogs);
+        }
+        setInterval(refreshAll, 5000); refreshAll(); // Start immediately
+    </script>
+</body>
+</html>
