@@ -1,9 +1,3 @@
-"""
-main.py
-───────
-Netad CCTV Security System — Main Application
-Includes: Login screen → Security Dashboard (camera + logs + stats)
-"""
 import customtkinter as ctk
 import cv2
 import os
