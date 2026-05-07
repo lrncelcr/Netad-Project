@@ -1,172 +1,257 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Netad Web Security</title>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netad // Production Console</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono&display=swap');
         
-        /* 1. Primary Replicated Theme Colors */
         :root {
-            --bg-dark: #0A0A0A;
-            --panel-dark: #111111;
-            --border-dark: #1E1E1E;
-            --text-muted: #555555;
-            --text-bright: #CCCCCC;
-            --main-green: #2ECC71; /* Accent Color */
-            --alert-red: #E74C3C;
-            --alert-yellow: #F39C12;
-            --alert-blue: #3498DB;
+            --bg: #09090b;
+            --canvas-dot: #18181b;
+            --purple: #a78bfa;
+            --emerald: #10b981;
+            --rose: #f43f5e;
         }
 
-        body { background-color: var(--bg-dark); color: var(--text-bright); font-family: 'Inter', sans-serif; letter-spacing: -0.02em; }
-        .log-box { height: 400px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 13px; scrollbar-width: thin; scrollbar-color: #222 transparent; }
-        .success { color: var(--main-green); }
-        .critical { color: var(--alert-red); }
-        .alert { color: var(--alert-yellow); }
-        .info { color: var(--alert-blue); }
+        /* ───── EDGE-FLUSH MINIMAL SCROLLER ───── */
+        * { scrollbar-width: thin; scrollbar-color: #27272a transparent; }
+        ::-webkit-scrollbar { width: 3px; height: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+        body { 
+            background-color: var(--bg); 
+            background-image: radial-gradient(var(--canvas-dot) 1px, transparent 1px);
+            background-size: 32px 32px;
+            font-family: 'Inter', sans-serif; color: #a1a1aa;
+            margin: 0; overflow: hidden; /* Kills browser scrollbar */
+        }
+
+        .railway-sidebar { width: 68px; background: #000; border-right: 1px solid #18181b; z-index: 50; }
+        .service-card { background: #0d0d10; border: 1px solid #1e1e22; border-radius: 20px; transition: 0.2s; display: flex; flex-direction: column; overflow: hidden; }
+        .service-card:hover { border-color: var(--purple); }
+
+        .nav-icon { color: #52525b; transition: 0.2s; cursor: pointer; padding: 12px; border-radius: 12px; }
+        .nav-icon:hover { color: white; background: #18181b; }
+        .nav-icon.active { color: var(--purple); background: #18181b; }
+
+        /* FIXED: Filter Button Layering & Clickability */
+        .filter-btn { 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            font-size: 8px; 
+            font-weight: 900; 
+            text-transform: uppercase; 
+            transition: 0.2s; 
+            border: 1px solid #1e1e22;
+            cursor: pointer !important;
+            pointer-events: auto !important;
+            position: relative;
+            z-index: 60;
+        }
+        .filter-btn:hover { border-color: var(--purple); color: white; }
+        .filter-btn.active { background: #18181b; color: white; border-color: #27272a; }
+
+        /* NEW: Smooth entry for log highlights */
+        .log-entry { transition: all 0.2s ease; border-radius: 4px; }
+        .log-entry:hover { background: rgba(255, 255, 255, 0.02); }
+
+        .hidden { display: none; }
     </style>
 </head>
-<body class="p-8">
-    <div class="max-w-[1500px] mx-auto">
-        
-        <header class="flex justify-between items-center mb-10 pb-5 border-b border-zinc-800">
-            <div class="flex items-center gap-2">
-                <span class="text-3xl font-extrabold" style="color: var(--main-green);">🛡️ NETAD</span>
-                <span class="text-xl font-medium" style="color: var(--text-muted);">– CCTV Security Web Dashboard</span>
+<body class="flex h-screen w-screen overflow-hidden">
+
+    <aside class="railway-sidebar flex flex-col items-center py-8 gap-10">
+        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center"><div class="w-5 h-5 bg-black rounded-sm"></div></div>
+        <div id="btn-dash" class="nav-icon active" onclick="showSection('view-dashboard')" title="Console"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+        <div id="btn-arch" class="nav-icon" onclick="showSection('view-archive')" title="Archive"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+        <div class="mt-auto nav-icon hover:text-rose-500" onclick="logout()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+    </aside>
+
+    <main class="flex-1 flex flex-col p-8 overflow-hidden">
+        <header class="flex justify-between items-center mb-6 w-full shrink-0">
+            <div class="flex items-center gap-2 text-[11px] font-bold">
+                <span class="text-zinc-600">Netad</span><span class="text-zinc-800">/</span><span class="text-white">production</span>
+                <span class="ml-4 flex items-center gap-1.5 bg-[#18181b] px-3 py-1 rounded-full text-[10px] text-emerald-500">
+                    <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> SYSTEM_LIVE
+                </span>
             </div>
-            <div class="flex items-center gap-4">
-                <div id="clock" class="font-mono text-sm" style="color: var(--text-muted);"></div>
-                <div class="text-sm font-bold flex items-center gap-1.5">👤 {{ session.get('username', 'Guest') }}</div>
-                <button id="logout" class="bg-zinc-800 text-xs px-4 py-2 rounded-lg font-bold hover:bg-red-900 transition-colors">⏻ Logout</button>
-            </div>
+            <div id="clock" class="text-[10px] font-mono text-zinc-600 tracking-[0.2em]"></div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-5 mb-8">
-            <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900 text-center">
-                <div id="stat-critical" class="text-5xl font-black" style="color: var(--alert-red);">0</div>
-                <div class="text-xs font-bold uppercase mt-3" style="color: var(--text-muted);">Critical Events</div>
-            </div>
-            <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900 text-center">
-                <div id="stat-total" class="text-5xl font-black" style="color: var(--alert-yellow);">0</div>
-                <div class="text-xs font-bold uppercase mt-3" style="color: var(--text-muted);">Total Alerts</div>
-            </div>
-            <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900 text-center">
-                <div id="stat-logins" class="text-5xl font-black" style="color: var(--alert-blue);">0</div>
-                <div class="text-xs font-bold uppercase mt-3" style="color: var(--text-muted);">Login Attempts</div>
-            </div>
-            <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900 text-center">
-                <div id="stat-snaps" class="text-5xl font-black" style="color: var(--text-muted);">0</div>
-                <div class="text-xs font-bold uppercase mt-3" style="color: var(--text-muted);">Snapshots</div>
-            </div>
-            <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900 text-center">
-                <div class="text-5xl font-black" style="color: var(--main-green);">ARMED</div>
-                <div class="text-xs font-bold uppercase mt-3" style="color: var(--text-muted);">System Status</div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            <div class="xl:col-span-2">
-                <div class="bg-zinc-950 p-0 rounded-xl border border-zinc-900 overflow-hidden aspect-[16/10] relative">
-                    <img id="video-stream" src="/video_feed" class="w-full h-full object-cover" onerror="handleStreamError(this)">
-                    <div class="absolute top-5 left-5 bg-red-600 text-white px-3 py-1 rounded text-[11px] font-bold animate-pulse">REC</div>
-                </div>
+        <section id="view-dashboard" class="flex-1 flex flex-col min-h-0">
+            <div class="grid grid-cols-4 gap-6 mb-6 shrink-0">
+                <div class="service-card p-5"><p class="text-[9px] font-black uppercase tracking-widest text-zinc-600 mb-1">Critical</p><p id="stat-critical" class="text-2xl font-black text-rose-500">0</p></div>
+                <div class="service-card p-5"><p class="text-[9px] font-black uppercase tracking-widest text-zinc-600 mb-1">Logs</p><p id="stat-total" class="text-2xl font-black text-zinc-200">0</p></div>
+                <div class="service-card p-5"><p class="text-[9px] font-black uppercase tracking-widest text-zinc-600 mb-1">Logins</p><p id="stat-logins" class="text-2xl font-black text-zinc-200">101</p></div>
+                <div class="service-card p-5 border-emerald-500/20"><p class="text-[9px] font-black uppercase text-zinc-600 mb-1 tracking-widest">Status</p><p class="text-2xl font-black text-emerald-500 uppercase">Armed</p></div>
             </div>
 
-            <div class="space-y-6">
-                <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900">
-                    <h3 class="text-sm font-bold mb-5 flex items-center gap-2">🚨 SECURITY EVENTS</h3>
-                    <div id="log-list" class="log-box space-y-4 text-xs">
-                        <div class="text-zinc-700 italic">Waiting for detector stream...</div>
+            <div class="flex-1 grid grid-cols-12 gap-6 min-h-0">
+                <div class="col-span-8 service-card shadow-2xl">
+                    <div class="p-4 border-b border-zinc-900 bg-[#0d0d10] flex justify-between items-center shrink-0">
+                        <span class="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Live Stream // Node_01</span>
+                        <div class="flex gap-2">
+                            <button onclick="term('Reboot initiated.')" class="bg-zinc-900 text-[8px] font-black px-3 py-1 rounded-md border border-zinc-800">Reboot</button>
+                            <button onclick="term('Snapshot saved.')" class="bg-purple-500 text-black text-[8px] font-black px-3 py-1 rounded-md">Snapshot</button>
+                        </div>
+                    </div>
+                    <div class="flex-1 bg-black flex items-center justify-center overflow-hidden">
+                        <img id="video-stream" src="/video_feed" class="max-w-full max-h-full object-contain opacity-90">
+                    </div>
+                    <div class="p-4 bg-[#0c0c0e] border-t border-zinc-900 shrink-0 flex gap-6">
+                        <div class="flex-1">
+                            <div class="flex justify-between mb-1.5"><span class="text-[8px] uppercase text-zinc-600 font-black">Node Traffic</span><span class="text-[8px] font-mono text-emerald-500">42.8 KB/s</span></div>
+                            <div class="w-full bg-zinc-900 h-1 rounded-full overflow-hidden"><div class="bg-purple-500 h-full w-[35%] animate-pulse"></div></div>
+                        </div>
+                        <div id="terminal-out" class="flex-1 font-mono text-[9px] text-emerald-500/60 overflow-y-auto h-8 custom-scrollbar">
+                            [SYSTEM] Node_01 Active.
+                        </div>
                     </div>
                 </div>
 
-                <div class="bg-zinc-950 p-6 rounded-xl border border-zinc-900">
-                    <h3 class="text-sm font-bold mb-5 flex items-center gap-2">🔑 LOGIN HISTORY</h3>
-                    <div id="login-log-list" class="log-box space-y-4 text-xs" style="height: 250px;">
-                        <div class="text-zinc-700 italic">Waiting for login records...</div>
+                <div class="col-span-4 flex flex-col gap-6 min-h-0">
+                    <div class="service-card flex-1 min-h-0 relative">
+                        <div class="p-5 border-b border-zinc-900 flex justify-between items-center shrink-0 bg-[#0d0d10] relative z-20">
+                            <h3 class="text-[10px] font-black uppercase tracking-widest text-zinc-500">Intrusion Logs</h3>
+                            <div class="flex gap-1">
+                                <button onclick="setFilter('sec', 'all')" id="sec-all" class="filter-btn active">All</button>
+                                <button onclick="setFilter('sec', 'Critical')" id="sec-crit" class="filter-btn">Crit</button>
+                            </div>
+                        </div>
+                        <div id="log-list" class="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar"></div>
+                    </div>
+
+                    <div class="service-card flex-1 min-h-0 relative">
+                        <div class="p-5 border-b border-zinc-900 flex justify-between items-center shrink-0 bg-[#0d0d10] relative z-20">
+                            <h3 class="text-[10px] font-black uppercase tracking-widest text-zinc-500">Access History</h3>
+                            <div class="flex gap-1">
+                                <button onclick="setFilter('auth', 'all')" id="auth-all" class="filter-btn active">All</button>
+                                <button onclick="setFilter('auth', 'Failed')" id="auth-fail" class="filter-btn">Fail</button>
+                            </div>
+                        </div>
+                        <div id="login-log-list" class="flex-1 overflow-y-auto p-5 space-y-4 custom-scrollbar"></div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </section>
+
+        <section id="view-archive" class="hidden flex-1 flex flex-col min-h-0">
+            <header class="flex justify-between items-end mb-6 shrink-0">
+                <div>
+                    <h2 class="text-white text-xl font-bold tracking-tight">Security Archive</h2>
+                    <p class="text-[9px] text-zinc-600 uppercase tracking-[0.3em] font-black mt-1">Full System Audit Log // Node_01</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="term('Generating CSV Export...')" class="bg-[#18181b] hover:bg-[#27272a] text-zinc-400 text-[9px] font-black uppercase px-4 py-2 rounded-xl border border-zinc-800 transition-all">Export CSV</button>
+                    <button onclick="term('Refreshing Database...')" class="bg-[#18181b] hover:bg-[#27272a] text-zinc-400 text-[9px] font-black uppercase px-4 py-2 rounded-xl border border-zinc-800 transition-all">Sync Database</button>
+                </div>
+            </header>
+
+            <div class="service-card flex-1 flex flex-col shadow-2xl min-h-0">
+                <div class="flex-1 overflow-y-auto custom-scrollbar">
+                    <table class="w-full text-left border-collapse table-fixed">
+                        <thead class="sticky top-0 z-20 bg-[#0d0d10] border-b border-zinc-900">
+                            <tr class="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                                <th class="p-6 w-[25%]">Timestamp</th>
+                                <th class="p-6 w-[20%]">Origin IP</th>
+                                <th class="p-6 w-[35%]">Activity Description</th>
+                                <th class="p-6 w-[20%] text-center">Security Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="full-log-table" class="divide-y divide-zinc-900/50"></tbody>
+                    </table>
+                </div>
+                <div class="p-4 bg-[#0c0c0e] border-t border-zinc-900 flex justify-between items-center shrink-0">
+                    <p class="text-[8px] text-zinc-600 font-bold uppercase tracking-widest">End of Records</p>
+                    <p class="text-[8px] text-zinc-800 font-mono italic">Production_Cluster_DB_v2</p>
+                </div>
+            </div>
+        </section>
+    </main>
 
     <script>
-        // 1. Live Clock
-        function tickClock() { document.getElementById('clock').innerText = new Date().toLocaleString('en-CA', { hour12: false }).replace(',', '   '); }
-        setInterval(tickClock, 1000); tickClock();
+        let currentSecFilter = 'all';
+        let currentAuthFilter = 'all';
 
-        // 2. Data Fetching API Calls
-        async function fetchData(url, callback) { try { const res = await fetch(url); const data = await res.json(); callback(data); } catch (e) { console.error(`Error fetching ${url}:`, e); } }
-
-        // 3. Stats Update
-        function updateStats(data) {
-            if (data.error) return;
-            document.getElementById('stat-critical').innerText = data.critical;
-            document.getElementById('stat-total').innerText = data.total;
-            document.getElementById('stat-logins').innerText = data.logins;
-            document.getElementById('stat-snaps').innerText = data.snaps;
+        function showSection(id) {
+            document.querySelectorAll('section').forEach(s => {
+                s.classList.add('hidden');
+                s.classList.remove('flex');
+            });
+            const target = document.getElementById(id);
+            target.classList.remove('hidden');
+            target.classList.add('flex'); 
+            
+            document.querySelectorAll('.nav-icon').forEach(n => n.classList.remove('active'));
+            document.querySelector(id === 'view-dashboard' ? '[title="Console"]' : '[title="Archive"]').classList.add('active');
         }
 
-        // 4. Security Logs Update (Replicated Layout)
-        function updateSecurityLogs(logs) {
-            if (!Array.isArray(logs)) return;
-            const container = document.getElementById('log-list');
-            container.innerHTML = logs.map(l => {
-                const tag = { Critical: 'critical', Alert: 'alert' }[l.stat] || 'info';
-                return `
-                    <div class="flex items-start gap-2.5">
-                        <span class="font-bold timestamp text-zinc-600">[${l.ts.split(' ')[1]}]</span>
-                        <div class="flex-1">
-                            <span class="font-bold text-zinc-300 font-mono">${l.ip}</span><br>
-                            <span class="text-zinc-400">${l.act}</span> → <span class="font-bold ${tag}">${l.stat}</span>
+        function setFilter(type, value) {
+            if(type === 'sec') {
+                currentSecFilter = value;
+                document.getElementById('sec-all').classList.toggle('active', value === 'all');
+                document.getElementById('sec-crit').classList.toggle('active', value === 'Critical');
+            } else {
+                currentAuthFilter = value;
+                document.getElementById('auth-all').classList.toggle('active', value === 'all');
+                document.getElementById('auth-fail').classList.toggle('active', value === 'Failed');
+            }
+            refresh(); 
+        }
+
+        function term(m) { const t = document.getElementById('terminal-out'); t.innerHTML += `<br>[USER] ${m}`; t.scrollTop = t.scrollHeight; }
+
+        async function refresh() {
+            try {
+                const [stats, sec, auth] = await Promise.all([
+                    fetch('/api/stats').then(r => r.json()),
+                    fetch('/api/logs').then(r => r.json()),
+                    fetch('/api/login_logs').then(r => r.json())
+                ]);
+
+                document.getElementById('stat-critical').innerText = stats.critical;
+                document.getElementById('stat-total').innerText = stats.total;
+                document.getElementById('stat-logins').innerText = stats.logins;
+
+                // NEW: Priority Highlighting for Intrusion Logs
+                const filteredSec = currentSecFilter === 'all' ? sec : sec.filter(l => l.stat === 'Critical');
+                document.getElementById('log-list').innerHTML = filteredSec.slice(0, 20).map(l => {
+                    const isCritical = l.stat === 'Critical';
+                    return `
+                    <div class="log-entry border-l-2 ${isCritical ? 'border-rose-500 bg-rose-500/5' : 'border-zinc-800'} pl-4 py-2 transition-all">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-zinc-200 font-mono text-[10px] break-all">${l.ip}</p>
+                            ${isCritical ? '<span class="animate-pulse w-1.5 h-1.5 bg-rose-500 rounded-full shadow-[0_0_8px_#f43f5e]"></span>' : ''}
                         </div>
-                    </div>`;
-            }).join('') || '<div class="text-zinc-700 italic">No network events recorded.</div>';
-        }
-
-        // 5. Login History Update (Replicated Layout)
-        function updateLoginLogs(logs) {
-            if (!Array.isArray(logs)) return;
-            const container = document.getElementById('login-log-list');
-            container.innerHTML = logs.map(l => {
-                const isSuccess = l.status === 'Success';
-                const tag = isSuccess ? 'success' : 'critical';
-                const reason = l.reason ? `<span class="text-zinc-600"> (${l.reason})</span>` : '';
-                return `
-                    <div class="flex items-start gap-2.5">
-                        <span class="font-bold timestamp text-zinc-600">[${l.ts.split(' ')[1]}]</span>
-                        <div class="flex-1">
-                            <span class="font-bold font-mono ${tag}">${l.username}</span> 
-                            <span class="text-zinc-500">from ${l.ip}</span><br>
-                            <span class="${tag} font-bold">${l.status}</span>${reason}
+                        <div class="flex items-center gap-2">
+                            <p class="${isCritical ? 'text-rose-500' : 'text-zinc-600'} text-[9px] font-black uppercase tracking-tighter">${l.act}</p>
+                            ${isCritical ? '<span class="text-[7px] bg-rose-500/20 text-rose-500 px-1 rounded font-black border border-rose-500/30">CRITICAL</span>' : ''}
                         </div>
-                    </div>`;
-            }).join('') || '<div class="text-zinc-700 italic">No login records found.</div>';
+                    </div>
+                    `;
+                }).join('') || '<p class="text-zinc-800 text-[9px] uppercase px-4 italic">Clear</p>';
+
+                const filteredAuth = currentAuthFilter === 'all' ? auth : auth.filter(l => l.status === 'Failed');
+                document.getElementById('login-log-list').innerHTML = filteredAuth.slice(0, 20).map(l => `
+                    <div class="border-l-2 border-zinc-800 pl-4 py-1">
+                        <p class="text-zinc-200 font-bold text-[10px] truncate">${l.username}</p>
+                        <p class="${l.status === 'Success' ? 'text-emerald-500' : 'text-rose-500'} text-[9px] font-black uppercase">${l.status} <span class="text-zinc-800 font-mono text-[8px] ml-1">@ ${l.ts.split(' ')[0]}</span></p>
+                    </div>
+                `).join('') || '<p class="text-zinc-800 text-[9px] uppercase px-4 italic">No Records</p>';
+
+                document.getElementById('full-log-table').innerHTML = sec.map(l => `
+                    <tr class="hover:bg-zinc-900/40 text-[10px] font-mono"><td class="p-6 text-zinc-600">${l.ts}</td><td class="p-6 font-bold text-zinc-300">${l.ip}</td><td class="p-6 text-zinc-500">${l.act}</td><td class="p-6"><span class="px-2 py-1 rounded ${l.stat === 'Critical' ? 'bg-rose-500/10 text-rose-500' : 'bg-zinc-900 text-zinc-600'}">${l.stat}</span></td></tr>
+                `).join('');
+            } catch(e) {}
         }
 
-        // 6. Handle Offline Stream (Replicated Graphic logic)
-        function handleStreamError(img) {
-            img.onerror = null; // Prevent loops
-            img.src = 'https://via.placeholder.com/640x400/0A0A0A/CCCCCC?text=Waiting+for+Signal...'; // Minimal replacement
-            img.classList.add('opacity-30');
-        }
-
-        // 7. Logout Logic
-        document.getElementById('logout').addEventListener('click', async () => {
-            const res = await fetch('/api/logout', { method: 'POST' });
-            if (res.ok) window.location.href = '/'; // Refresh triggers the login redirect if needed
-        });
-
-        // 8. Auto-Refresh Loop (5 Seconds)
-        function refreshAll() {
-            fetchData('/api/stats', updateStats);
-            fetchData('/api/logs', updateSecurityLogs);
-            fetchData('/api/login_logs', updateLoginLogs);
-        }
-        setInterval(refreshAll, 5000); refreshAll(); // Start immediately
+        setInterval(refresh, 5000); refresh();
+        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleString('en-CA', {hour12:false}); }, 1000);
+        async function logout() { await fetch('/api/logout', {method:'POST'}); window.location.href='/'; }
     </script>
 </body>
 </html>

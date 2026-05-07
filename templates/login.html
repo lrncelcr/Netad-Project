@@ -1,160 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Netad - Secure Login</title>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netad // Production Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         
         body { 
-            background-color: #0A0A0A; 
-            color: #CCCCCC; 
-            font-family: 'Inter', sans-serif; 
-            overflow: hidden;
+            background-color: #09090b; 
+            background-image: radial-gradient(#18181b 1px, transparent 1px);
+            background-size: 24px 24px;
+            font-family: 'Inter', sans-serif;
+            display: flex; align-items: center; justify-content: center; height: 100vh;
+            margin: 0; overflow: hidden;
         }
 
-        .login-card { 
-            background-color: #111111; 
-            border: 1px solid #1E1E1E; 
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        .railway-card {
+            background: #0d0d10;
+            border: 1px solid #1e1e22;
+            width: 100%;
+            max-width: 380px;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            animation: springIn 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        input { 
-            background-color: #1A1A1A; 
-            border: 1px solid #1E1E1E; 
-            color: #CCCCCC; 
-            transition: all 0.2s ease;
+        @keyframes springIn {
+            from { opacity: 0; transform: scale(0.95) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
-        input:focus { 
-            border-color: #2ECC71; 
-            background-color: #222;
-            outline: none; 
-            box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
-        }
+        input { background: #050505 !important; border: 1px solid #1e1e22; color: white !important; transition: all 0.2s; }
+        input:focus { border-color: #a78bfa; outline: none; }
+        input:disabled { opacity: 0.3; cursor: not-allowed; border-color: #27272a; }
 
-        /* Shake Animation for Failed Logins */
+        .btn-deploy { background: #a78bfa; color: #000; font-weight: 800; text-transform: uppercase; transition: all 0.3s; }
+        .btn-deploy:disabled { background: #18181b; color: #52525b; cursor: not-allowed; }
+        
+        #attempt-bar { transition: width 0.5s ease-out; }
         .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); }
-            20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-            40%, 60% { transform: translate3d(4px, 0, 0); }
-        }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
     </style>
 </head>
-<body class="h-screen flex items-center justify-center p-6">
+<body>
 
-    <div id="login-container" class="w-full max-w-md text-center">
-        <div class="mb-8">
-            <div class="text-5xl mb-4">🔒</div>
-            <h1 class="text-4xl font-black tracking-tighter text-[#2ECC71]">NETAD</h1>
-            <p class="text-xs text-[#555555] uppercase tracking-widest mt-1">CCTV Security Management</p>
+    <div id="auth-box" class="railway-card">
+        <div class="flex flex-col items-center mb-10">
+            <div id="status-icon" class="w-14 h-14 bg-[#18181b] rounded-2xl flex items-center justify-center mb-4 border border-[#27272a] transition-all">
+                <svg id="icon-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <h1 class="text-white text-xl font-bold tracking-tight">Netad Console</h1>
+            <div class="flex items-center gap-2 mt-2">
+                <span id="pulse-dot" class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                <p id="status-text" class="text-[9px] text-zinc-500 uppercase tracking-[0.3em] font-black">Production v2.0</p>
+            </div>
         </div>
 
-        <div class="login-card rounded-2xl p-8 text-left">
-            <h2 class="text-lg font-bold mb-6 text-center text-zinc-300">Sign In to Dashboard</h2>
-            
-            <form id="login-form" class="space-y-5">
-                <div>
-                    <label class="block text-[10px] font-bold text-[#555555] uppercase mb-1">Username</label>
-                    <input type="text" id="username" class="w-full rounded-lg px-4 py-3 text-sm" placeholder="Enter username" required autocomplete="off">
-                </div>
-                
-                <div>
-                    <label class="block text-[10px] font-bold text-[#555555] uppercase mb-1">Password</label>
-                    <input type="password" id="password" class="w-full rounded-lg px-4 py-3 text-sm" placeholder="Enter password" required>
-                </div>
+        <form id="login-form" class="space-y-4">
+            <div>
+                <label class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest ml-1 mb-2 block text-zinc-500">Identity</label>
+                <input type="text" id="username" class="w-full rounded-xl px-4 py-3 text-sm" placeholder="Username" required>
+            </div>
+            <div>
+                <label class="text-[9px] font-bold text-zinc-600 uppercase tracking-widest ml-1 mb-2 block text-zinc-500">Security Key</label>
+                <input type="password" id="password" class="w-full rounded-xl px-4 py-3 text-sm" placeholder="••••••••" required>
+            </div>
 
-                <div id="error-msg" class="text-center text-[#E74C3C] text-xs font-medium min-h-[1.2rem]"></div>
+            <div id="error-msg" class="text-[9px] text-rose-500 font-bold text-center min-h-[14px] uppercase tracking-wider"></div>
 
-                <div class="w-full bg-[#222] h-1.5 rounded-full overflow-hidden">
-                    <div id="attempt-bar" class="bg-[#E74C3C] h-full transition-all duration-500" style="width: 0%"></div>
-                </div>
+            <div class="w-full bg-[#18181b] h-1 rounded-full overflow-hidden border border-zinc-900 mt-2">
+                <div id="attempt-bar" class="bg-rose-500 h-full shadow-[0_0_10px_#f43f5e]" style="width: 0%"></div>
+            </div>
 
-                <button type="submit" id="submit-btn" class="w-full bg-[#2ECC71] text-[#000] font-black py-3 rounded-lg hover:bg-[#27AE60] transition-all text-sm uppercase active:scale-95">
-                    Sign In
-                </button>
-            </form>
+            <button type="submit" id="submit-btn" class="btn-deploy w-full py-4 rounded-xl text-[11px] mt-4">Deploy Session</button>
+        </form>
+
+        <div id="admin-notice" class="hidden mt-8 text-center">
+            <p id="cooldown-timer" class="text-[10px] text-rose-500 font-black uppercase tracking-[0.2em] mb-2"></p>
+            <p class="text-[10px] text-zinc-500">Node access temporarily restricted.</p>
+            <a href="mailto:admin@netad.com" class="text-[10px] text-purple-400 font-bold uppercase tracking-widest hover:text-white transition-colors underline underline-offset-4 mt-2 block">Contact Admin</a>
         </div>
-
-        <p class="mt-8 text-[10px] text-[#444] px-10 leading-relaxed">
-            ⚠ Unauthorized access is prohibited and actively monitored by the Netad Intrusion Detection System.
-        </p>
     </div>
 
     <script>
-        const form = document.getElementById('login-form');
-        const container = document.getElementById('login-container');
-        const errorArea = document.getElementById('error-msg');
-        const attemptBar = document.getElementById('attempt-bar');
-        const btn = document.getElementById('submit-btn');
-        
-        const maxAttempts = 5;
-        let localFailCount = 0;
+        const form = document.getElementById('login-form'), authBox = document.getElementById('auth-box'),
+              err = document.getElementById('error-msg'), btn = document.getElementById('submit-btn'),
+              inputs = document.querySelectorAll('input'), adminNotice = document.getElementById('admin-notice'),
+              statusText = document.getElementById('status-text'), pulseDot = document.getElementById('pulse-dot'),
+              statusIcon = document.getElementById('status-icon'), iconSvg = document.getElementById('icon-svg'),
+              attemptBar = document.getElementById('attempt-bar'), timerText = document.getElementById('cooldown-timer');
+
+        let attempts = parseInt(localStorage.getItem('netad_attempts')) || 0;
+        const MAX_ATTEMPTS = 5;
+        const COOLDOWN_SECONDS = 30;
+
+        // On Load: Update Bar and Check if Cooldown is already active
+        window.onload = () => {
+            attemptBar.style.width = `${(attempts / MAX_ATTEMPTS) * 100}%`;
+            const lockoutTime = localStorage.getItem('netad_lockout_expiry');
+            if (lockoutTime && Date.now() < lockoutTime) {
+                const remaining = Math.ceil((lockoutTime - Date.now()) / 1000);
+                startCooldown(remaining);
+            }
+        };
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            // UI Feedback: Loading
-            btn.innerText = "VERIFYING...";
+            btn.innerText = "AUTHORIZING...";
             btn.disabled = true;
-            errorArea.innerText = "";
-
-            const payload = {
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value
-            };
 
             try {
                 const res = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ username: document.getElementById('username').value, password: document.getElementById('password').value })
                 });
-                
                 const data = await res.json();
 
                 if (data.success) {
-                    // Success: Send to main dashboard
-                    window.location.href = "/"; 
+                    localStorage.removeItem('netad_attempts');
+                    localStorage.removeItem('netad_lockout_expiry');
+                    window.location.href = "/";
                 } else {
-                    // Handle Failure
-                    localFailCount++;
-                    errorArea.innerText = data.message;
+                    attempts++;
+                    localStorage.setItem('netad_attempts', attempts);
                     
-                    // Update Security Bar
-                    const progress = Math.min((localFailCount / maxAttempts) * 100, 100);
-                    attemptBar.style.width = `${progress}%`;
+                    authBox.classList.remove('shake');
+                    void authBox.offsetWidth; 
+                    authBox.classList.add('shake');
+                    
+                    attemptBar.style.width = `${(attempts / MAX_ATTEMPTS) * 100}%`;
 
-                    // 🛑 FRONTEND LOCKOUT CHECK
-                    if (localFailCount >= maxAttempts || data.message.includes("locked")) {
-                        errorArea.innerText = "SECURITY ALERT: ACCESS DENIED (LOCKED)";
-                        btn.innerText = "SYSTEM LOCKED";
-                        btn.classList.replace('bg-[#2ECC71]', 'bg-[#333]'); 
-                        btn.classList.add('text-zinc-500');
-                        btn.disabled = true;
-                        return; 
+                    if (attempts >= MAX_ATTEMPTS) {
+                        const expiry = Date.now() + (COOLDOWN_SECONDS * 1000);
+                        localStorage.setItem('netad_lockout_expiry', expiry);
+                        startCooldown(COOLDOWN_SECONDS);
+                    } else {
+                        err.innerText = "INCORRECT CREDENTIALS";
+                        btn.innerText = "Deploy Session"; btn.disabled = false;
                     }
-
-                    // Trigger Shake Animation
-                    container.classList.remove('shake');
-                    void container.offsetWidth; // Trigger DOM reflow
-                    container.classList.add('shake');
-
-                    // Reset button for next try
-                    btn.innerText = "Sign In";
-                    btn.disabled = false;
                 }
-            } catch (err) {
-                console.error("Login Error:", err);
-                errorArea.innerText = "CONNECTION ERROR: Server is unreachable.";
-                btn.innerText = "Sign In";
-                btn.disabled = false;
-            }
+            } catch (f) { err.innerText = "SYNC ERROR"; btn.disabled = false; }
         });
+
+        function startCooldown(seconds) {
+            inputs.forEach(i => i.disabled = true);
+            btn.disabled = true;
+            btn.innerText = "SYSTEM_COOLDOWN";
+            adminNotice.classList.remove('hidden');
+            err.innerText = "SECURITY OVERRIDE ACTIVE";
+            statusText.innerText = "NODE_BUSY // THREAT_DETECTED";
+            statusText.style.color = "#f43f5e";
+            pulseDot.classList.replace('bg-emerald-500', 'bg-rose-500');
+            statusIcon.style.borderColor = "#f43f5e"; iconSvg.style.stroke = "#f43f5e";
+
+            let timeLeft = seconds;
+            const timer = setInterval(() => {
+                timerText.innerText = `RETRY AVAILABLE IN ${timeLeft}s`;
+                timeLeft--;
+
+                if (timeLeft < 0) {
+                    clearInterval(timer);
+                    resetAuth();
+                }
+            }, 1000);
+        }
+
+        function resetAuth() {
+            localStorage.removeItem('netad_attempts');
+            localStorage.removeItem('netad_lockout_expiry');
+            attempts = 0;
+            inputs.forEach(i => i.disabled = false);
+            btn.disabled = false;
+            btn.innerText = "Deploy Session";
+            attemptBar.style.width = "0%";
+            adminNotice.classList.add('hidden');
+            err.innerText = "";
+            statusText.innerText = "Production v2.0";
+            statusText.style.color = "#71717a";
+            pulseDot.classList.replace('bg-rose-500', 'bg-emerald-500');
+            statusIcon.style.borderColor = "#27272a"; iconSvg.style.stroke = "#a78bfa";
+        }
     </script>
 </body>
 </html>
