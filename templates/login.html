@@ -1,113 +1,63 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Netad - Secure Login</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { background-color: #0A0A0A; color: #CCCCCC; font-family: 'Inter', sans-serif; }
-        .login-card { background-color: #111111; border: 1px solid #1E1E1E; }
-        input { background-color: #1A1A1A; border: 1px solid #1E1E1E; color: #CCCCCC; }
-        input:focus { border-color: #2ECC71; outline: none; }
-        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes shake {
-            10%, 90% { transform: translate3d(-1px, 0, 0); }
-            20%, 80% { transform: translate3d(2px, 0, 0); }
-            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-            40%, 60% { transform: translate3d(4px, 0, 0); }
-        }
-    </style>
-</head>
-<body class="h-screen flex items-center justify-center p-6">
-    <div id="login-container" class="w-full max-w-md text-center">
-        <div class="mb-8">
-            <div class="text-5xl mb-4">🔒</div>
-            <h1 class="text-4xl font-black tracking-tighter text-[#2ECC71]">NETAD</h1>
-            <p class="text-xs text-[#555555] uppercase tracking-widest mt-1">CCTV Security Management</p>
-        </div>
+<script>
+    const form = document.getElementById('login-form');
+    const container = document.getElementById('login-container');
+    const errorArea = document.getElementById('error-msg');
+    const attemptBar = document.getElementById('attempt-bar');
+    const btn = document.getElementById('submit-btn'); // Moved outside to access easily
+    const maxAttempts = 5;
+    let localFailCount = 0;
 
-        <div class="login-card rounded-2xl p-8 text-left shadow-2xl">
-            <h2 class="text-lg font-bold mb-6 text-center">Sign In</h2>
-            
-            <form id="login-form" class="space-y-5">
-                <div>
-                    <label class="block text-[10px] font-bold text-[#555555] uppercase mb-1">Username</label>
-                    <input type="text" id="username" class="w-full rounded-lg px-4 py-3 text-sm" placeholder="Enter username" required>
-                </div>
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        btn.innerText = "Verifying...";
+        btn.disabled = true;
+
+        const payload = {
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value
+        };
+
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                window.location.href = "/"; 
+            } else {
+                localFailCount++;
+                errorArea.innerText = data.message;
                 
-                <div>
-                    <label class="block text-[10px] font-bold text-[#555555] uppercase mb-1">Password</label>
-                    <input type="password" id="password" class="w-full rounded-lg px-4 py-3 text-sm" placeholder="Enter password" required>
-                </div>
+                // Update the bar
+                const progress = Math.min((localFailCount / maxAttempts) * 100, 100);
+                attemptBar.style.width = `${progress}%`;
 
-                <div id="error-msg" class="text-center text-[#E74C3C] text-xs font-medium min-h-[1rem]"></div>
-
-                <div class="w-full bg-[#222] h-1 rounded-full overflow-hidden">
-                    <div id="attempt-bar" class="bg-[#E74C3C] h-full transition-all duration-300" style="width: 0%"></div>
-                </div>
-
-                <button type="submit" id="submit-btn" class="w-full bg-[#2ECC71] text-[#000] font-black py-3 rounded-lg hover:bg-[#27AE60] transition-all text-sm uppercase">
-                    Sign In
-                </button>
-            </form>
-        </div>
-
-        <p class="mt-8 text-[10px] text-[#444] px-10">
-            ⚠ Unauthorized access is prohibited and actively monitored by the Netad System.
-        </p>
-    </div>
-
-    <script>
-        const form = document.getElementById('login-form');
-        const container = document.getElementById('login-container');
-        const errorArea = document.getElementById('error-msg');
-        const attemptBar = document.getElementById('attempt-bar');
-        const maxAttempts = 5;
-        let localFailCount = 0;
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('submit-btn');
-            
-            btn.innerText = "Verifying...";
-            btn.disabled = true;
-
-            const payload = {
-                username: document.getElementById('username').value,
-                password: document.getElementById('password').value
-            };
-
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    window.location.href = "/"; // Success: Redirect to Dashboard
-                } else {
-                    // Fail: Replicate Desktop Logic
-                    localFailCount++;
-                    errorArea.innerText = data.message;
-                    attemptBar.style.width = `${(localFailCount / maxAttempts) * 100}%`;
-                    
-                    // Shake Animation
-                    container.classList.remove('shake');
-                    void container.offsetWidth; // Trigger reflow
-                    container.classList.add('shake');
-
-                    btn.innerText = "Sign In";
-                    btn.disabled = false;
+                // 🛑 FRONTEND LOCKOUT CHECK
+                // If they hit 5 attempts OR the server says "Account locked"
+                if (localFailCount >= maxAttempts || data.message.includes("locked")) {
+                    errorArea.innerText = "SECURITY ALERT: Access Denied (Locked)";
+                    btn.innerText = "LOCKED";
+                    btn.classList.replace('bg-[#2ECC71]', 'bg-[#333]'); // Change green to gray
+                    btn.disabled = true; // Stay disabled
+                    return; 
                 }
-            } catch (err) {
-                errorArea.innerText = "Connection error. Is app.py running?";
+
+                // Shake Animation
+                container.classList.remove('shake');
+                void container.offsetWidth; 
+                container.classList.add('shake');
+
+                btn.innerText = "Sign In";
                 btn.disabled = false;
             }
-        });
-    </script>
-</body>
-</html>
+        } catch (err) {
+            errorArea.innerText = "Connection error. Is app.py running?";
+            btn.innerText = "Sign In";
+            btn.disabled = false;
+        }
+    });
+</script>
