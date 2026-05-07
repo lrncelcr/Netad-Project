@@ -384,11 +384,20 @@ class DashboardFrame(ctk.CTkFrame):
         if cap and cap.isOpened():
             ret, frame = cap.read()
             if ret:
-                rgb  = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                img  = Image.fromarray(rgb).resize((640, 380))
-                itk  = ImageTk.PhotoImage(image=img)
-                self._vid.imgtk = itk
-                self._vid.configure(image=itk, text="")
+                # 1. Convert BGR (OpenCV) to RGB (PIL)
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                img = Image.fromarray(rgb)
+                
+                # 2. Use CTkImage instead of ImageTk.PhotoImage
+                # This silences the HighDPI scaling warning
+                ctk_img = ctk.CTkImage(light_image=img, 
+                                       dark_image=img, 
+                                       size=(640, 380))
+                
+                # 3. Configure the label
+                self._vid.configure(image=ctk_img, text="")
+                
+        # Schedule the next frame update
         self._vid.after(15, self._update_frame)
 
     def _blink_rec(self):

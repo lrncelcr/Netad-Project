@@ -10,24 +10,22 @@ load_dotenv()
 DB_URL = os.getenv("DATABASE_URL")
 
 # ─── CONFIG ───────────────────────────────────────────────
-# --- CONFIG ---
 CAMERA_IP            = "192.168.1.10"   # Target for professor's attack
 PORT_SCAN_THRESHOLD  = 2                # Trigger Critical after only 2 ports
 PING_FLOOD_THRESHOLD = 3                # Trigger Critical after only 3 pings
+TRACKER_RESET_SEC    = 300              # Resets temporary counters every 5 mins
+DB_PORT              = 31529            # Your Railway DB port (to avoid infinite loops)
 
 # ─── STATE (thread-safe) ──────────────────────────────────
 _lock              = threading.Lock()
 port_scan_tracker  = defaultdict(set)   # {src_ip: {port, ...}}
 ping_tracker       = defaultdict(list)  # {src_ip: [datetime, ...]}
 udp_tracker        = defaultdict(set)   # {src_ip: {port, ...}}
-logged_events      = set()             # Dedup key: (src_ip, action) to avoid spam
-
 
 # ─── DB LOGGING ───────────────────────────────────────────
 
 def log_to_db(ip: str, action: str, status: str):
-    """Modified: Log EVERY attempt without 60s waiting period."""
-    # Remove the 'with _lock' dedup block that starts here
+    """Log EVERY attempt to the database for full history."""
     try:
         conn = psycopg2.connect(DB_URL)
         cur  = conn.cursor()
@@ -39,7 +37,7 @@ def log_to_db(ip: str, action: str, status: str):
         cur.close()
         conn.close()
         
-        # This keeps your console bright and active during the demo
+        # Console feedback for the demo
         print(f"🚨 ALERT: {status} | {action} from {ip}")
     except Exception as e:
         print(f"[DB ERROR] {e}")
@@ -48,15 +46,13 @@ def log_to_db(ip: str, action: str, status: str):
 # ─── PACKET HANDLERS ──────────────────────────────────────
 
 def handle_icmp(src_ip: str, packet):
-    """Detect ping probes and ICMP flood attacks."""
-    if packet[ICMP].type != 8:   # Only echo requests
+    if packet[ICMP].type != 8:
         return
 
     now = datetime.now()
     with _lock:
         pings = ping_tracker[src_ip]
         pings.append(now)
-        # Keep only pings from the last 10 seconds
         ping_tracker[src_ip] = [t for t in pings if (now - t).seconds < 10]
         count = len(ping_tracker[src_ip])
 
@@ -67,16 +63,17 @@ def handle_icmp(src_ip: str, packet):
 
 
 def handle_tcp(src_ip: str, packet):
-    """Detect SYN scans, targeted connections, and RST floods."""
     flags = int(packet[TCP].flags)
     port  = packet[TCP].dport
+
+    # SAFETY: Ignore traffic going to your database port to prevent self-logging
+    if port == DB_PORT:
+        return
 
     SYN = 0x002
     RST = 0x004
     FIN = 0x001
-    ACK = 0x010
 
-    # SYN-only → port scan probe
     if flags == SYN:
         with _lock:
             port_scan_tracker[src_ip].add(port)
@@ -85,35 +82,23 @@ def handle_tcp(src_ip: str, packet):
 
         if count >= PORT_SCAN_THRESHOLD:
             summary = str(ports_list[:8])[1:-1]
-            log_to_db(
-                src_ip,
-                f"Port Scan Detected ({count} ports: {summary}{'…' if count > 8 else ''})",
-                "Critical"
-            )
+            log_to_db(src_ip, f"Port Scan ({count} ports: {summary})", "Critical")
             with _lock:
-                port_scan_tracker[src_ip] = set()  # Reset after logging
+                port_scan_tracker[src_ip] = set()
         else:
             log_to_db(src_ip, f"Suspicious TCP SYN to Port {port}", "Alert")
 
-    # RST to camera port (possible DoS / connection teardown flood)
     elif (flags & RST) and port in (554, 80, 8080, 443):
         log_to_db(src_ip, f"TCP RST to Camera Port {port}", "Alert")
-
-    # FIN scan (stealthy scan technique)
     elif flags == FIN:
         log_to_db(src_ip, f"TCP FIN Scan to Port {port}", "Alert")
-
-    # NULL scan (all flags off)
     elif flags == 0:
         log_to_db(src_ip, f"TCP NULL Scan to Port {port}", "Alert")
-
-    # XMAS scan (FIN+PSH+URG)
     elif flags & 0x029 == 0x029:
         log_to_db(src_ip, f"TCP XMAS Scan to Port {port}", "Critical")
 
 
 def handle_udp(src_ip: str, packet):
-    """Detect UDP port probing."""
     port = packet[UDP].dport
     with _lock:
         udp_tracker[src_ip].add(port)
@@ -136,8 +121,6 @@ def packet_callback(packet):
         return
 
     src_ip = packet[IP].src
-
-    # Skip loopback
     if src_ip.startswith("127."):
         return
 
@@ -152,12 +135,11 @@ def packet_callback(packet):
 # ─── PERIODIC CLEANUP ─────────────────────────────────────
 
 def _reset_trackers():
-    """Clear stale port scan data periodically."""
     with _lock:
         port_scan_tracker.clear()
         ping_tracker.clear()
         udp_tracker.clear()
-    print(f"\033[90m[{datetime.now().strftime('%H:%M:%S')}] Tracker state cleared.\033[0m")
+    # Fixed: Uses the variable defined in CONFIG
     threading.Timer(TRACKER_RESET_SEC, _reset_trackers).start()
 
 
@@ -167,21 +149,16 @@ if __name__ == "__main__":
     print("=" * 60)
     print("  🛡  Netad – Network Intrusion Detector")
     print(f"  Target Camera IP  :  {CAMERA_IP}")
-    print(f"  Port scan threshold: {PORT_SCAN_THRESHOLD} ports")
-    print(f"  Ping flood threshold: {PING_FLOOD_THRESHOLD} pings/10s")
-    print("  Monitoring: ICMP | TCP | UDP")
+    print(f"  Monitoring: ICMP | TCP | UDP")
     print("=" * 60)
-    print("  Press Ctrl+C to stop.\n")
 
     _reset_trackers()
 
     try:
-        sniff(
-            filter=f"(icmp or tcp or udp) and dst host {CAMERA_IP}",
-            prn=packet_callback,
-            store=0
-        )
+        # Optimization: Filter out the database port at the sniffer level
+        sniff_filter = f"(icmp or tcp or udp) and dst host {CAMERA_IP} and not port {DB_PORT}"
+        sniff(filter=sniff_filter, prn=packet_callback, store=0)
     except KeyboardInterrupt:
-        print("\n\033[93m[!] Detector stopped.\033[0m")
+        print("\n[!] Detector stopped.")
     except PermissionError:
-        print("\n\033[91m[ERROR] Run as administrator/root to capture packets.\033[0m")
+        print("\n[ERROR] Run as administrator to capture packets.")
