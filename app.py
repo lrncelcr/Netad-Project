@@ -6,13 +6,12 @@ from datetime import datetime
 from functools import wraps
 from dotenv import load_dotenv
 
-# Import auth helpers
-from auth import verify_login, log_login_event, db_connect
+# Import auth helpers (Added create_user)
+from auth import verify_login, log_login_event, db_connect, create_user
 
 load_dotenv()
 
 app = Flask(__name__)
-# Uses Railway Variable if available, otherwise uses a fallback
 app.secret_key = os.getenv("SECRET_KEY", "netad-super-secret-key-2026") 
 
 ALERTS_DIR = "security_alerts"
@@ -63,7 +62,6 @@ def api_login():
     username = (body.get('username') or '').strip()
     password = (body.get('password') or '').strip()
 
-    # Cloud-friendly IP detection
     if request.headers.get('X-Forwarded-For'):
         ip_addr = request.headers.get('X-Forwarded-For').split(',')[0]
     else:
@@ -84,6 +82,24 @@ def api_login():
 def api_logout():
     session.clear()
     return jsonify({'success': True})
+
+# ─── NEW: API: USER MANAGEMENT ────────────────────────
+@app.route('/api/add_user', methods=['POST'])
+@login_required
+def api_add_user():
+    # RBAC: Only Admins can create users
+    if session.get('role') != 'Admin':
+        return jsonify({'success': False, 'message': 'Unauthorized: Admin privileges required'}), 403
+
+    body = request.get_json(force=True)
+    new_username = (body.get('username') or '').strip()
+    new_password = (body.get('password') or '').strip()
+
+    if not new_username or not new_password:
+        return jsonify({'success': False, 'message': 'Username and password required'}), 400
+
+    success, message = create_user(new_username, new_password)
+    return jsonify({'success': success, 'message': message})
 
 # ─── API: DATA & LOGS ─────────────────────────────────
 @app.route('/api/logs')

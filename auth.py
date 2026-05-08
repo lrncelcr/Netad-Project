@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 DB_URL = os.getenv("DATABASE_URL")
-MAX_FAILED_ATTEMPTS = 5 
+MAX_FAILED_ATTEMPTS = 5
 
 def hash_password(password: str, salt: str = None):
     if not salt:
@@ -16,6 +16,24 @@ def hash_password(password: str, salt: str = None):
 
 def db_connect():
     return psycopg2.connect(DB_URL)
+
+# ───── NEW: FUNCTION TO ADD USERS ─────
+def create_user(username, password, role='Operator'):
+    """Hashes the password and saves a new operator to the database."""
+    password_hash, salt = hash_password(password)
+    try:
+        conn = db_connect()
+        cur = conn.cursor()
+        cur.execute(
+            """INSERT INTO users (username, password_hash, salt, role, failed_attempts, is_locked)
+               VALUES (%s, %s, %s, %s, 0, FALSE)""",
+            (username, password_hash, salt, role)
+        )
+        conn.commit()
+        cur.close(); conn.close()
+        return True, "User created successfully."
+    except Exception as e:
+        return False, str(e)
 
 def verify_login(username: str, password: str) -> tuple[bool, str]:
     if not username or not password:
@@ -42,12 +60,12 @@ def verify_login(username: str, password: str) -> tuple[bool, str]:
         return False, f"Database error: {e}"
 
 def log_login_event(username, status, reason=None, ip_address='Unknown'):
-    """Correctly handles logs and account lockouts without duplicate code."""
+    """Records login attempts and manages account lockouts cleanly."""
     try:
         conn = db_connect()
         cur = conn.cursor()
 
-        # 1. Log the attempt
+        # 1. Insert login record
         cur.execute(
             "INSERT INTO login_logs (username, ip_address, status, reason) VALUES (%s, %s, %s, %s)",
             (username, ip_address, status, reason)
@@ -57,7 +75,7 @@ def log_login_event(username, status, reason=None, ip_address='Unknown'):
         if status == "Failed":
             cur.execute(
                 """
-                UPDATE users 
+                UPDATE users
                 SET failed_attempts = failed_attempts + 1,
                     is_locked = CASE WHEN (failed_attempts + 1) >= %s THEN TRUE ELSE FALSE END
                 WHERE username = %s
