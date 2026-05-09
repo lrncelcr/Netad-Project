@@ -334,7 +334,7 @@
                 document.getElementById('stat-logins').innerText = stats.logins;
                 
                 if (isFirstLoad) { lastCriticalCount = stats.critical; isFirstLoad = false; }
-                else if (stats.critical > lastCriticalCount) { document.getElementById('brute-alert').classList.remove('hidden'); lastCriticalCount = stats.critical; term("NEW_CRITICAL_DETECTED"); }
+                else if (stats.critical > lastCriticalCount) { document.getElementById('brute-alert').classList.remove('hidden'); lastCriticalCount = stats.critical; term("NEW CRITICAL DETECTED"); }
 
                 const filteredSec = currentSecFilter === 'all' ? sec : sec.filter(l => l.stat === 'Critical');
                 document.getElementById('log-list').innerHTML = filteredSec.slice(0, 15).map(l => `<div class="p-4 border-b border-border/20 font-mono"><div class="flex justify-between font-bold text-[14px]"><span>${l.ip}</span><span class="${l.stat === 'Critical' ? 'text-rose-500' : 'text-zinc-500'}">${l.stat.toUpperCase()}</span></div><span class="text-zinc-500 text-[11px] uppercase">${l.act}</span></div>`).join('');
