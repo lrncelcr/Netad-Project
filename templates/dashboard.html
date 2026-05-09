@@ -54,12 +54,14 @@
         .nav-icon { color: var(--text-muted); transition: 0.2s; cursor: pointer; padding: 12px; border-radius: 14px; margin: 6px; }
         .nav-icon.active { color: var(--accent); background: rgba(167, 139, 250, 0.1); border: 1px solid rgba(167, 139, 250, 0.2); }
 
-        input { background: var(--bg-canvas) !important; border: 1px solid var(--border); color: var(--text-main) !important; font-family: 'JetBrains Mono', monospace; padding: 12px; font-size: 14px; }
+        /* IMPROVED: TYPING BOX SIZE AND VISIBILITY */
+        input { background: var(--bg-canvas) !important; border: 1.5px solid var(--border) !important; color: var(--text-main) !important; font-family: 'JetBrains Mono', monospace; padding: 16px; font-size: 14px; border-radius: 10px; transition: border-color 0.2s; }
+        input:focus { border-color: var(--accent) !important; outline: none; }
+        body.light-theme .sticky th { color: #1e293b !important; }
         
         .spin-active { animation: spin 0.6s linear; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* FIXED: DRAWERS NO LONGER BLOCK SIDEBAR */
         .drawer-overlay { pointer-events: none; visibility: hidden; }
         .drawer-overlay.active { pointer-events: auto; visibility: visible; }
 
@@ -71,6 +73,9 @@
         .col-action { width: 37%; }
         .col-stat { width: 10%; min-width: 100px; }
         table { table-layout: fixed; width: 100%; }
+
+        /* FIXED: READABILITY FOR EVENT PILLS IN LIGHT MODE */
+        .type-badge { background-color: #1f2937; color: #f9fafb; padding: 4px 12px; border-radius: 6px; font-weight: 800; font-size: 9px; }
     </style>
 </head>
 <body class="flex h-screen w-screen overflow-hidden">
@@ -209,7 +214,7 @@
                 <div><label class="text-[13px] font-bold text-zinc-500 block mb-3 uppercase font-mono">Identity</label><input type="text" id="new-username" class="w-full rounded-lg px-4 py-4 text-sm" required placeholder="operator_id"></div>
                 <div><label class="text-[13px] font-bold text-zinc-500 block mb-3 uppercase font-mono">Key</label><input type="password" id="new-password" class="w-full rounded-lg px-4 py-4 text-sm" required placeholder="••••••••"></div>
                 <div id="drawer-msg" class="text-[12px] font-bold text-center min-h-[20px] uppercase font-mono mb-4"></div>
-                <button type="submit" id="provision-btn" class="w-full bg-white text-black font-black text-[13px] py-5 rounded-2xl uppercase tracking-widest cursor-pointer hover:bg-zinc-200 shadow-xl border-none">Authorize Session</button>
+                <button type="submit" id="provision-btn" class="w-full bg-accent text-white font-black text-[13px] py-5 rounded-2xl uppercase tracking-widest cursor-pointer hover:brightness-110 shadow-xl border-none">Authorize Session</button>
             </form>
         </div>
     </div>
@@ -342,7 +347,6 @@
                 const filteredAuth = currentAuthFilter === 'all' ? auth : auth.filter(l => l.status === 'Failed');
                 document.getElementById('login-log-list').innerHTML = filteredAuth.slice(0, 15).map(l => `<div class="p-4 flex justify-between border-b border-border/20 font-mono"><div><p class="font-bold text-text-main text-[14px]">${l.username}</p><p class="text-zinc-500 text-[10px] font-mono">${l.ts}</p></div><span class="${l.status === 'Success' ? 'text-emerald-500' : 'text-rose-500'} font-black text-[11px] uppercase font-mono">${l.status}</span></div>`).join('');
 
-                // FIXED: ARCHIVE ALIGNMENT & COUNTER
                 const filteredArch = currentArchFilter === 'all' ? sec : sec.filter(l => l.stat === 'Critical');
                 document.getElementById('archive-count').innerText = `${filteredArch.length} RECORDS FOUND`;
                 document.getElementById('full-log-table').innerHTML = filteredArch.map(l => {
@@ -351,7 +355,7 @@
                         <td class="p-5 col-ts">${l.ts}</td>
                         <td class="p-5 col-node text-accent opacity-70">NODE_01</td>
                         <td class="p-5 col-ip font-bold">${l.ip}</td>
-                        <td class="p-5 col-type"><span class="bg-zinc-800 px-3 py-1 rounded text-[9px] font-black">${l.act.split(' ')[0].toUpperCase()}</span></td>
+                        <td class="p-5 col-type"><span class="type-badge">${l.act.split(' ')[0].toUpperCase()}</span></td>
                         <td class="p-5 col-action text-zinc-500">${l.act}</td>
                         <td class="p-5 col-stat text-center"><span class="px-2 py-1 rounded border ${isCrit ? 'border-rose-500/40 text-rose-500 bg-rose-500/5' : 'border-border text-zinc-500'} text-[9px] font-black uppercase">${l.stat}</span></td>
                     </tr>`;
