@@ -145,20 +145,19 @@ def _reset_trackers():
 
 # ─── ENTRY POINT ──────────────────────────────────────────
 
-if __name__ == "__main__":
+# ─── START FUNCTION ───────────────────────────────────────
+
+def start_detector():
+    """Function to be called by app.py to start sniffing in the background."""
     print("=" * 60)
-    print("  🛡  Netad – Network Intrusion Detector")
+    print("  🛡  Netad – Network Intrusion Detector (ACTIVE)")
     print(f"  Target Camera IP  :  {CAMERA_IP}")
-    print(f"  Monitoring: ICMP | TCP | UDP")
     print("=" * 60)
 
     _reset_trackers()
 
     try:
-        # Optimization: Filter out the database port at the sniffer level
         sniff_filter = f"(icmp or tcp or udp) and dst host {CAMERA_IP} and not port {DB_PORT}"
         sniff(filter=sniff_filter, prn=packet_callback, store=0)
-    except KeyboardInterrupt:
-        print("\n[!] Detector stopped.")
-    except PermissionError:
-        print("\n[ERROR] Run as administrator to capture packets.")
+    except Exception as e:
+        print(f"[DETECTOR ERROR] {e}")

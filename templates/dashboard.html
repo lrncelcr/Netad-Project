@@ -13,7 +13,6 @@
             --text-muted: #8b949e; --emerald: #3fb950; --rose: #f85149; --radius: 14px;
         }
 
-        /* ───── LIGHT THEME REFINEMENTS ───── */
         body.light-theme { 
             --bg-canvas: #f8fafc; --bg-surface: #ffffff; --bg-header: #f1f5f9; --border: #cbd5e1; --text-main: #0f172a; --accent: #7c3aed; --text-muted: #334155;
         }
@@ -28,46 +27,20 @@
             position: relative; font-size: 15px;
         }
 
-        /* ───── ANIMATIONS ───── */
-        .particle-container {
-            position: absolute; inset: 0; z-index: -1;
-            background: radial-gradient(circle at center, #11151c 0%, var(--bg-canvas) 100%);
-            overflow: hidden;
-        }
-        .dot {
-            position: absolute; width: 3px; height: 3px; background: var(--accent);
-            border-radius: 50%; opacity: 0; animation: drift var(--d) linear infinite;
-        }
-        @keyframes drift {
-            0% { transform: translateY(105vh); opacity: 0; }
-            20% { opacity: 0.3; }
-            80% { opacity: 0.3; }
-            100% { transform: translateY(-10vh); opacity: 0; }
-        }
+        .particle-container { position: absolute; inset: 0; z-index: -1; background: radial-gradient(circle at center, #11151c 0%, var(--bg-canvas) 100%); overflow: hidden; }
+        .dot { position: absolute; width: 3px; height: 3px; background: var(--accent); border-radius: 50%; opacity: 0; animation: drift var(--d) linear infinite; }
+        @keyframes drift { 0% { transform: translateY(105vh); opacity: 0; } 20% { opacity: 0.3; } 80% { opacity: 0.3; } 100% { transform: translateY(-10vh); opacity: 0; } }
 
         .service-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; transition: 0.3s; }
         .service-card:hover { border-color: var(--accent); transform: translateY(-2px); }
 
-        .utility-header { 
-            background: var(--bg-header); border-bottom: 1px solid var(--border); padding: 16px 20px; 
-            display: flex; justify-content: space-between; align-items: center;
-            border-top-left-radius: inherit; border-top-right-radius: inherit;
-        }
+        .utility-header { background: var(--bg-header); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-top-left-radius: inherit; border-top-right-radius: inherit; }
         .utility-header span, .utility-header h3 { color: var(--text-main) !important; font-size: 14px; font-weight: 700; }
 
-        .filter-btn { 
-            padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 800; 
-            text-transform: uppercase; border: 1px solid var(--border); 
-            background: transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s;
-        }
-        .filter-btn.active { background: #30363d; color: #ffffff !important; border-color: var(--text-muted); }
+        .filter-btn { padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
+        .filter-btn.active { background: #30363d !important; color: #ffffff !important; border-color: var(--text-muted); }
 
-        .icon-btn {
-            display: flex; align-items: center; justify-content: center;
-            padding: 10px; border-radius: 12px; border: 1px solid var(--border);
-            color: var(--accent); background: rgba(167, 139, 250, 0.05);
-            transition: all 0.2s; cursor: pointer;
-        }
+        .icon-btn { display: flex; align-items: center; justify-content: center; padding: 10px; border-radius: 12px; border: 1px solid var(--border); color: var(--accent); background: rgba(167, 139, 250, 0.05); transition: all 0.2s; cursor: pointer; }
         .icon-btn:hover { background: var(--accent); color: #000; border-color: transparent; }
 
         .heartbeat { position: relative; width: 8px; height: 8px; background: var(--emerald); border-radius: 50%; }
@@ -81,28 +54,47 @@
         .nav-icon { color: var(--text-muted); transition: 0.2s; cursor: pointer; padding: 12px; border-radius: 14px; margin: 6px; }
         .nav-icon.active { color: var(--accent); background: rgba(167, 139, 250, 0.1); border: 1px solid rgba(167, 139, 250, 0.2); }
 
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-        .hidden { display: none; }
         input { background: var(--bg-canvas) !important; border: 1px solid var(--border); color: var(--text-main) !important; font-family: 'JetBrains Mono', monospace; padding: 12px; font-size: 14px; }
+        
+        .spin-active { animation: spin 0.6s linear; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* LEDGER READABILITY */
-        #full-log-table td { font-size: 14px !important; }
-        #view-archive thead th { font-size: 12px !important; padding: 16px 20px !important; }
+        /* FIXED: DRAWERS NO LONGER BLOCK SIDEBAR */
+        .drawer-overlay { pointer-events: none; visibility: hidden; }
+        .drawer-overlay.active { pointer-events: auto; visibility: visible; }
+
+        /* FIXED: TABLE COLUMN WIDTHS FOR PERFECT ALIGNMENT */
+        .col-ts { width: 18%; min-width: 160px; }
+        .col-node { width: 10%; min-width: 100px; }
+        .col-ip { width: 15%; min-width: 140px; }
+        .col-type { width: 10%; min-width: 110px; }
+        .col-action { width: 37%; }
+        .col-stat { width: 10%; min-width: 100px; }
+        table { table-layout: fixed; width: 100%; }
     </style>
 </head>
 <body class="flex h-screen w-screen overflow-hidden">
 
     <div class="particle-container" id="particles"></div>
 
+    <div id="brute-alert" class="hidden fixed top-8 right-8 z-[1000] bg-rose-600 text-white py-4 px-6 font-bold text-[13px] rounded-xl shadow-2xl border border-rose-400/30 flex items-center gap-4 animate-bounce">
+        <span>🚨 SECURITY ALERT: NEW BRUTE FORCE ATTEMPT DETECTED</span>
+        <button onclick="closeAlert()" class="hover:bg-white/20 p-1 rounded-md transition-colors">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+    </div>
+
     <aside class="railway-sidebar flex flex-col items-center py-8 shrink-0">
         <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-10 shadow-sm"><div class="w-5 h-5 bg-black rounded-sm"></div></div>
+        
         <nav class="flex flex-col gap-6">
             <div id="btn-dash" class="nav-icon active" onclick="showSection('view-dashboard')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg></div>
-            <div id="btn-users" class="nav-icon" onclick="showSection('view-users')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
             <div id="btn-arch" class="nav-icon" onclick="showSection('view-archive')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+            <div id="btn-users" class="nav-icon" onclick="showSection('view-users')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
         </nav>
+
         <div class="mt-auto flex flex-col items-center gap-6">
-            <div class="nav-icon" onclick="toggleSettings(true)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+            <div class="nav-icon" onclick="toggleSettings(true)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
             <div class="nav-icon hover:text-rose-500" onclick="logout()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
         </div>
     </aside>
@@ -112,10 +104,16 @@
             <div class="flex items-center gap-3 text-[14px] font-bold">
                 <span class="text-zinc-500">Netad</span><span class="text-zinc-700">/</span><span>production</span>
                 <span class="ml-6 flex items-center gap-3 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20 text-[12px] text-emerald-500">
-                    <div class="heartbeat"></div> SYSTEM_LIVE
+                    <div class="heartbeat"></div> SYSTEM LIVE
                 </span>
             </div>
-            <div id="clock" class="text-[13px] font-mono text-zinc-500"></div>
+            <div class="flex items-center gap-6">
+                <button onclick="manualRefresh()" class="flex items-center gap-2 text-zinc-500 hover:text-accent transition-colors">
+                    <svg id="refresh-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    <span class="text-[11px] font-black uppercase tracking-widest">Manual Sync</span>
+                </button>
+                <div id="clock" class="text-[13px] font-mono text-zinc-500"></div>
+            </div>
         </header>
 
         <section id="view-dashboard" class="flex-1 flex flex-col min-h-0">
@@ -134,7 +132,7 @@
                 <div class="col-span-8 service-card">
                     <div class="utility-header"><span>LIVE FEED</span><div class="flex gap-3"><button onclick="term('Rebooting...')" class="icon-btn" title="Reboot"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button></div></div>
                     <div class="flex-1 bg-black flex items-center justify-center overflow-hidden"><img id="video-stream" src="/video_feed" class="max-w-full max-h-full object-contain"></div>
-                    <div class="p-4 border-t border-border flex gap-4 shrink-0"><div id="terminal-out" class="flex-1 font-mono text-emerald-500/80 h-6 overflow-hidden truncate">[SYSTEM] Active.</div></div>
+                    <div class="p-4 border-t border-border flex gap-4 shrink-0"><div id="terminal-out" class="flex-1 font-mono text-[13px] text-emerald-500/80 h-6 overflow-hidden truncate font-bold">[SYSTEM] Active</div></div>
                 </div>
                 <div class="col-span-4 flex flex-col gap-8 min-h-0">
                     <div class="service-card flex-1 min-h-0">
@@ -165,7 +163,7 @@
                     <div class="flex items-center gap-6">
                         <h3>System Audit Ledger</h3>
                         <div class="h-5 w-[1px] bg-border"></div>
-                        <span id="archive-count" class="text-[12px] font-mono text-zinc-500 uppercase">0 Records</span>
+                        <span id="archive-count" class="text-[12px] font-mono text-zinc-500 uppercase font-black">0 RECORDS FOUND</span>
                     </div>
                     <div class="flex gap-3">
                         <button onclick="downloadLogs()" class="filter-btn">Export CSV</button>
@@ -177,7 +175,7 @@
                 <div class="flex-1 overflow-y-auto">
                     <table class="w-full text-left text-[15px] font-mono border-collapse">
                         <thead class="sticky top-0 bg-bg-header border-b border-border z-10 text-zinc-500 uppercase font-bold">
-                            <tr><th>Timestamp</th><th>Node_ID</th><th>Origin_IP</th><th>Event_Type</th><th>Detailed_Action</th><th class="text-center">Severity</th></tr>
+                            <tr><th class="p-5 col-ts">Timestamp</th><th class="p-5 col-node">Node ID</th><th class="p-5 col-ip">Origin IP</th><th class="p-5 col-type">Event Type</th><th class="p-5 col-action">Detailed Action</th><th class="p-5 col-stat text-center">Severity</th></tr>
                         </thead>
                         <tbody id="full-log-table" class="divide-y divide-border/10"></tbody>
                     </table>
@@ -186,31 +184,46 @@
         </section>
     </main>
 
-    <div id="user-drawer" class="fixed inset-0 z-[100] translate-x-full transition-transform duration-300 flex justify-end">
+    <div id="revoke-modal" class="hidden fixed inset-0 z-[2000] flex items-center justify-center p-6">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeRevokeModal()"></div>
+        <div class="relative w-full max-w-md bg-bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden font-mono">
+            <div class="p-8 text-center">
+                <div class="w-16 h-16 bg-rose-500/10 border border-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <h3 class="text-xl font-bold text-text-main mb-2 uppercase tracking-tight font-mono">Revoke Access?</h3>
+                <p class="text-zinc-500 text-sm font-mono mb-8">Confirm deletion for Identity: <span id="revoke-target-id" class="text-rose-500 font-bold"></span></p>
+                <div class="flex gap-4">
+                    <button onclick="closeRevokeModal()" class="flex-1 border border-border text-zinc-400 font-bold py-4 rounded-xl hover:bg-white/5 uppercase text-[11px] font-mono">Cancel</button>
+                    <button onclick="executeRevoke()" class="flex-1 bg-rose-600 text-white font-bold py-4 rounded-xl hover:bg-rose-500 transition-all uppercase text-[11px] font-mono">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="user-drawer" class="drawer-overlay fixed inset-0 z-[100] translate-x-full transition-transform duration-300 flex justify-end">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="toggleDrawer(false)"></div>
         <div class="relative w-96 bg-bg-surface border-l border-border h-full p-10 shadow-2xl">
-            <h3 class="text-xl font-bold mb-8 text-text-main uppercase tracking-widest">Provision User</h3>
+            <h3 class="text-xl font-bold mb-8 text-text-main uppercase tracking-widest font-mono">Provision User</h3>
             <form id="add-user-form" class="space-y-8">
-                <div><label class="text-[13px] font-bold text-zinc-500 block mb-3 uppercase">Identity</label><input type="text" id="new-username" class="w-full rounded-lg px-4 py-4 text-sm" required placeholder="operator_id"></div>
-                <div><label class="text-[13px] font-bold text-zinc-500 block mb-3 uppercase">Key</label><input type="password" id="new-password" class="w-full rounded-lg px-4 py-4 text-sm" required placeholder="••••••••"></div>
-                <div id="drawer-msg" class="text-[12px] font-bold text-center min-h-[20px] uppercase"></div>
-                <button type="submit" id="provision-btn" class="w-full bg-accent text-black font-black text-[13px] py-5 rounded-2xl uppercase tracking-widest">Authorize Session</button>
+                <div><label class="text-[13px] font-bold text-zinc-500 block mb-3 uppercase font-mono">Identity</label><input type="text" id="new-username" class="w-full rounded-lg px-4 py-4 text-sm" required placeholder="operator_id"></div>
+                <div><label class="text-[13px] font-bold text-zinc-500 block mb-3 uppercase font-mono">Key</label><input type="password" id="new-password" class="w-full rounded-lg px-4 py-4 text-sm" required placeholder="••••••••"></div>
+                <div id="drawer-msg" class="text-[12px] font-bold text-center min-h-[20px] uppercase font-mono mb-4"></div>
+                <button type="submit" id="provision-btn" class="w-full bg-white text-black font-black text-[13px] py-5 rounded-2xl uppercase tracking-widest cursor-pointer hover:bg-zinc-200 shadow-xl border-none">Authorize Session</button>
             </form>
         </div>
     </div>
 
-    <div id="settings-drawer" class="fixed inset-0 z-[100] translate-x-full transition-transform duration-300 flex justify-end">
+    <div id="settings-drawer" class="drawer-overlay fixed inset-0 z-[100] translate-x-full transition-transform duration-300 flex justify-end">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="toggleSettings(false)"></div>
         <div class="relative w-96 bg-bg-surface border-l border-border h-full p-10 shadow-2xl">
-            <h3 class="text-xl font-bold mb-10 text-text-main uppercase tracking-widest">Settings</h3>
-            <div class="space-y-10">
-                <div>
-                    <label class="text-[13px] font-bold text-zinc-500 block mb-4 uppercase">Console Theme</label>
-                    <div class="grid grid-cols-3 gap-3">
-                        <button onclick="setTheme('dark')" id="theme-dark" class="filter-btn py-4 text-[10px] font-bold uppercase">Dark</button>
-                        <button onclick="setTheme('light')" id="theme-light" class="filter-btn py-4 text-[10px] font-bold uppercase">Light</button>
-                        <button onclick="setTheme('system')" id="theme-system" class="filter-btn py-4 text-[10px] font-bold uppercase active">Auto</button>
-                    </div>
+            <h3 class="text-xl font-bold mb-10 text-text-main uppercase tracking-widest font-mono">Settings</h3>
+            <div>
+                <label class="text-[13px] font-bold text-zinc-500 block mb-4 uppercase font-mono">Console Theme</label>
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="setTheme('dark')" id="theme-dark" class="filter-btn py-4 text-[10px] font-bold uppercase active">Dark</button>
+                    <button onclick="setTheme('light')" id="theme-light" class="filter-btn py-4 text-[10px] font-bold uppercase">Light</button>
+                    <button onclick="setTheme('system')" id="theme-system" class="filter-btn py-4 text-[10px] font-bold uppercase">Auto</button>
                 </div>
             </div>
         </div>
@@ -218,7 +231,7 @@
 
     <script>
         const container = document.getElementById('particles');
-        for (let i = 0; i < 35; i++) {
+        for (let i = 0; i < 75; i++) {
             const dot = document.createElement('div'); dot.className = 'dot';
             dot.style.left = `${Math.random() * 100}%`;
             dot.style.setProperty('--d', `${15 + Math.random() * 20}s`);
@@ -227,35 +240,38 @@
         }
 
         let currentSecFilter = 'all', currentAuthFilter = 'all', currentArchFilter = 'all';
+        let lastCriticalCount = 0, isFirstLoad = true, userToRevoke = null;
 
-        function toggleDrawer(isOpen) { document.getElementById('user-drawer').classList.toggle('translate-x-full', !isOpen); }
-        function toggleSettings(isOpen) { document.getElementById('settings-drawer').classList.toggle('translate-x-full', !isOpen); }
+        function closeAlert() { document.getElementById('brute-alert').classList.add('hidden'); }
+        
+        function toggleDrawer(isOpen) { 
+            const d = document.getElementById('user-drawer');
+            d.classList.toggle('translate-x-full', !isOpen); d.classList.toggle('active', isOpen);
+            document.getElementById('drawer-msg').innerText = ''; 
+        }
+        function toggleSettings(isOpen) { 
+            const s = document.getElementById('settings-drawer');
+            s.classList.toggle('translate-x-full', !isOpen); s.classList.toggle('active', isOpen);
+        }
 
         function showSection(id) {
             document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
             document.querySelectorAll('.nav-icon').forEach(n => n.classList.remove('active'));
             const btnId = id === 'view-dashboard' ? 'btn-dash' : id === 'view-users' ? 'btn-users' : 'btn-arch';
-            document.getElementById(btnId).classList.add('active');
+            const navBtn = document.getElementById(btnId);
+            if(navBtn) navBtn.classList.add('active');
             if(id === 'view-users') fetchUserList();
         }
 
-        function setTheme(mode) {
-            document.querySelectorAll('#settings-drawer .filter-btn').forEach(b => b.classList.remove('active'));
-            if (mode === 'light') {
-                document.body.classList.add('light-theme');
-                document.getElementById('theme-light').classList.add('active');
-            } else if (mode === 'dark') {
-                document.body.classList.remove('light-theme');
-                document.getElementById('theme-dark').classList.add('active');
-            } else {
-                const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                document.body.classList.toggle('light-theme', !isDark);
-                document.getElementById('theme-system').classList.add('active');
-            }
+        async function manualRefresh() {
+            const icon = document.getElementById('refresh-icon');
+            icon.classList.add('spin-active');
+            term("MANUAL SYNC_INITIATED...");
+            try { await Promise.all([refresh(), fetchUserList()]); term("SYNC_COMPLETE"); } 
+            catch(e) { term("SYNC_ERROR"); }
+            finally { setTimeout(() => icon.classList.remove('spin-active'), 600); }
         }
-
-        function term(m) { document.getElementById('terminal-out').innerText = `[LOG] ${m}`; }
 
         function setFilter(t, v) {
             if(t === 'sec') {
@@ -277,19 +293,35 @@
             refresh();
         }
 
-        function downloadLogs() { term("EXPORTING_SYSTEM_LEDGER..."); alert("Audit log exported as system_audit_report.csv"); }
+        function revokeUser(username) {
+            userToRevoke = username;
+            document.getElementById('revoke-target-id').innerText = username.toUpperCase();
+            document.getElementById('revoke-modal').classList.remove('hidden');
+        }
+
+        function closeRevokeModal() { document.getElementById('revoke-modal').classList.add('hidden'); userToRevoke = null; }
+
+        async function executeRevoke() {
+            if (!userToRevoke) return;
+            try {
+                const res = await fetch('/api/revoke_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: userToRevoke }) });
+                const data = await res.json();
+                if (data.success) { term(`REVOKED: ${userToRevoke.toUpperCase()}`); closeRevokeModal(); fetchUserList(); }
+                else { alert("Error: " + data.message); }
+            } catch (e) { term("DATABASE_ERROR"); }
+        }
 
         async function fetchUserList() {
             try {
                 const res = await fetch('/api/get_users');
                 const users = await res.json();
                 document.getElementById('user-list-table').innerHTML = users.map(u => `
-                    <tr class="hover:bg-bg-header/40 transition-colors">
+                    <tr class="hover:bg-bg-header/40 transition-colors font-mono">
                         <td class="p-5 font-bold text-text-main">${u.username}</td>
-                        <td class="p-5 text-zinc-500 uppercase text-[11px]">Level 1</td>
+                        <td class="p-5 text-zinc-500 uppercase text-[9px]">Level 1</td>
                         <td class="p-5 text-zinc-500 text-[12px] font-mono">${new Date().toLocaleString('en-CA', {hour12:false})}</td>
                         <td class="p-5 text-emerald-500 text-[11px] font-black uppercase tracking-widest">Active</td>
-                        <td class="p-5 text-right"><button class="text-rose-500 opacity-50 hover:opacity-100 text-[10px] font-bold uppercase">Revoke</button></td>
+                        <td class="p-5 text-right"><button onclick="revokeUser('${u.username}')" class="text-rose-500 opacity-50 hover:opacity-100 text-[10px] font-bold uppercase hover:underline">Revoke</button></td>
                     </tr>`).join('');
             } catch(e) { document.getElementById('user-list-table').innerHTML = '<tr><td colspan="5" class="p-16 text-center text-zinc-600 font-black uppercase tracking-widest opacity-20 text-sm">Syncing database...</td></tr>'; }
         }
@@ -301,21 +333,34 @@
                 document.getElementById('stat-total').innerText = stats.total;
                 document.getElementById('stat-logins').innerText = stats.logins;
                 
+                if (isFirstLoad) { lastCriticalCount = stats.critical; isFirstLoad = false; }
+                else if (stats.critical > lastCriticalCount) { document.getElementById('brute-alert').classList.remove('hidden'); lastCriticalCount = stats.critical; term("NEW_CRITICAL_DETECTED"); }
+
                 const filteredSec = currentSecFilter === 'all' ? sec : sec.filter(l => l.stat === 'Critical');
-                document.getElementById('log-list').innerHTML = filteredSec.slice(0, 15).map(l => `<div class="p-4 border-b border-border/20"><div class="flex justify-between font-bold text-[14px]"><span>${l.ip}</span><span class="${l.stat === 'Critical' ? 'text-rose-500' : 'text-zinc-500'}">${l.stat.toUpperCase()}</span></div><span class="text-zinc-500 text-[11px] uppercase">${l.act}</span></div>`).join('');
+                document.getElementById('log-list').innerHTML = filteredSec.slice(0, 15).map(l => `<div class="p-4 border-b border-border/20 font-mono"><div class="flex justify-between font-bold text-[14px]"><span>${l.ip}</span><span class="${l.stat === 'Critical' ? 'text-rose-500' : 'text-zinc-500'}">${l.stat.toUpperCase()}</span></div><span class="text-zinc-500 text-[11px] uppercase">${l.act}</span></div>`).join('');
                 
                 const filteredAuth = currentAuthFilter === 'all' ? auth : auth.filter(l => l.status === 'Failed');
-                document.getElementById('login-log-list').innerHTML = filteredAuth.slice(0, 15).map(l => `<div class="p-4 flex justify-between border-b border-border/20"><div><p class="font-bold text-text-main text-[14px]">${l.username}</p><p class="text-zinc-500 text-[10px] font-mono">${l.ts}</p></div><span class="${l.status === 'Success' ? 'text-emerald-500' : 'text-rose-500'} font-black text-[11px] uppercase">${l.status}</span></div>`).join('');
+                document.getElementById('login-log-list').innerHTML = filteredAuth.slice(0, 15).map(l => `<div class="p-4 flex justify-between border-b border-border/20 font-mono"><div><p class="font-bold text-text-main text-[14px]">${l.username}</p><p class="text-zinc-500 text-[10px] font-mono">${l.ts}</p></div><span class="${l.status === 'Success' ? 'text-emerald-500' : 'text-rose-500'} font-black text-[11px] uppercase font-mono">${l.status}</span></div>`).join('');
 
+                // FIXED: ARCHIVE ALIGNMENT & COUNTER
                 const filteredArch = currentArchFilter === 'all' ? sec : sec.filter(l => l.stat === 'Critical');
                 document.getElementById('archive-count').innerText = `${filteredArch.length} RECORDS FOUND`;
                 document.getElementById('full-log-table').innerHTML = filteredArch.map(l => {
                     const isCrit = l.stat === 'Critical';
-                    const [date, time] = l.ts.split(', ');
-                    return `<tr class="hover:bg-bg-header/40 group"><td class="p-5 whitespace-nowrap"><span class="text-text-main">${time || l.ts}</span><br><span class="text-[10px] text-zinc-500">${date || ''}</span></td><td class="p-5 text-accent font-bold opacity-70">NODE_01</td><td class="p-5 font-bold text-text-main">${l.ip}</td><td class="p-5"><span class="bg-zinc-800/50 px-3 py-1 rounded text-[10px] uppercase font-bold">${l.act.split(' ')[0]}</span></td><td class="p-5 text-zinc-500">${l.act}</td><td class="p-5 text-center"><span class="px-3 py-1 rounded border ${isCrit ? 'border-rose-500/30 text-rose-500 bg-rose-500/5' : 'border-border text-zinc-500'} text-[10px] font-black uppercase">${l.stat}</span></td></tr>`;
+                    return `<tr class="hover:bg-bg-header/40 group font-mono">
+                        <td class="p-5 col-ts">${l.ts}</td>
+                        <td class="p-5 col-node text-accent opacity-70">NODE_01</td>
+                        <td class="p-5 col-ip font-bold">${l.ip}</td>
+                        <td class="p-5 col-type"><span class="bg-zinc-800 px-3 py-1 rounded text-[9px] font-black">${l.act.split(' ')[0].toUpperCase()}</span></td>
+                        <td class="p-5 col-action text-zinc-500">${l.act}</td>
+                        <td class="p-5 col-stat text-center"><span class="px-2 py-1 rounded border ${isCrit ? 'border-rose-500/40 text-rose-500 bg-rose-500/5' : 'border-border text-zinc-500'} text-[9px] font-black uppercase">${l.stat}</span></td>
+                    </tr>`;
                 }).join('');
             } catch(e) {}
         }
+
+        function term(m) { document.getElementById('terminal-out').innerText = `[LOG] ${m}`; }
+        function setTheme(mode) { document.querySelectorAll('#settings-drawer .filter-btn').forEach(b => b.classList.remove('active')); if (mode === 'light') { document.body.classList.add('light-theme'); document.getElementById('theme-light').classList.add('active'); } else if (mode === 'dark') { document.body.classList.remove('light-theme'); document.getElementById('theme-dark').classList.add('active'); } else { const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches; document.body.classList.toggle('light-theme', !isDark); document.getElementById('theme-system').classList.add('active'); } }
 
         document.getElementById('add-user-form').onsubmit = async (e) => {
             e.preventDefault();
@@ -324,9 +369,12 @@
             try {
                 const res = await fetch('/api/add_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: user, password: pass }) });
                 const data = await res.json();
-                if(data.success) { msg.style.color = "#3fb950"; msg.innerText = "ACCESS GRANTED"; term(`NEW_USER: ${user.toUpperCase()}`); setTimeout(() => { toggleDrawer(false); e.target.reset(); fetchUserList(); }, 1500); }
-                else { msg.style.color = "#f85149"; msg.innerText = "ERROR: " + data.message; }
-            } catch(err) { msg.innerText = "SYNC_FAILED"; } 
+                if(data.success) { 
+                    msg.style.color = "#3fb950"; msg.innerText = "ACCESS GRANTED"; 
+                    term(`NEW_USER: ${user.toUpperCase()}`); 
+                    setTimeout(() => { toggleDrawer(false); e.target.reset(); fetchUserList(); }, 1500); 
+                } else { msg.style.color = "#f85149"; msg.innerText = data.message || "PROVISION_FAILED"; }
+            } catch(err) { msg.style.color = "#f85149"; msg.innerText = "SYNC_FAILED"; } 
             finally { btn.innerText = "Authorize Session"; btn.disabled = false; }
         };
 

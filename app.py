@@ -1,13 +1,15 @@
 import cv2
 import os
 import psycopg2
+import threading 
 from flask import Flask, render_template, Response, jsonify, request, session
 from datetime import datetime
 from functools import wraps
 from dotenv import load_dotenv
 
-# Import auth helpers (Added create_user)
+# Import auth helpers
 from auth import verify_login, log_login_event, db_connect, create_user
+from detector import start_detector 
 
 load_dotenv()
 
@@ -55,17 +57,13 @@ def index():
 def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-# ─── API: AUTHENTICATION ──────────────────────────────
+# ─── API: AUTHENTICATION (BRUTE FORCE DETECTION) ──────
 @app.route('/api/login', methods=['POST'])
 def api_login():
     body = request.get_json(force=True)
     username = (body.get('username') or '').strip()
     password = (body.get('password') or '').strip()
-
-    if request.headers.get('X-Forwarded-For'):
-        ip_addr = request.headers.get('X-Forwarded-For').split(',')[0]
-    else:
-        ip_addr = request.remote_addr
+    ip_addr = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0]
 
     success, result = verify_login(username, password)
 
@@ -76,6 +74,22 @@ def api_login():
         return jsonify({'success': True, 'username': username, 'role': result})
     else:
         log_login_event(username, 'Failed', result, ip_address=ip_addr)
+        
+        # BRUTE FORCE LOGIC
+        try:
+            conn = db_connect()
+            cur = conn.cursor()
+            # Check for 5 failures in the last 10 minutes
+            cur.execute("SELECT COUNT(*) FROM login_logs WHERE ip_address = %s AND status = 'Failed' AND timestamp > NOW() - INTERVAL '10 minutes'", (ip_addr,))
+            fail_count = cur.fetchone()[0]
+            
+            if fail_count >= 5:
+                cur.execute("INSERT INTO audit_logs (ip_address, action, status) VALUES (%s, %s, %s)", 
+                           (ip_addr, f"Brute Force: 5+ failed logins for {username}", "Critical"))
+                conn.commit()
+            cur.close(); conn.close()
+        except: pass 
+        
         return jsonify({'success': False, 'message': result})
 
 @app.route('/api/logout', methods=['POST'])
@@ -83,23 +97,50 @@ def api_logout():
     session.clear()
     return jsonify({'success': True})
 
-# ─── NEW: API: USER MANAGEMENT ────────────────────────
+# ─── API: USER MANAGEMENT (ADD & REVOKE) ──────────────
 @app.route('/api/add_user', methods=['POST'])
 @login_required
 def api_add_user():
-    # RBAC: Only Admins can create users
-    if session.get('role') != 'Admin':
-        return jsonify({'success': False, 'message': 'Unauthorized: Admin privileges required'}), 403
-
     body = request.get_json(force=True)
     new_username = (body.get('username') or '').strip()
     new_password = (body.get('password') or '').strip()
-
     if not new_username or not new_password:
         return jsonify({'success': False, 'message': 'Username and password required'}), 400
-
     success, message = create_user(new_username, new_password)
     return jsonify({'success': success, 'message': message})
+
+@app.route('/api/get_users')
+@login_required
+def api_get_users():
+    try:
+        conn = db_connect()
+        cur = conn.cursor()
+        cur.execute("SELECT username, role FROM users ORDER BY username ASC")
+        rows = cur.fetchall()
+        cur.close(); conn.close()
+        return jsonify([{'username': r[0], 'role': r[1]} for r in rows])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/revoke_user', methods=['POST'])
+@login_required
+def api_revoke_user():
+    body = request.get_json(force=True)
+    target_user = (body.get('username') or '').strip()
+    
+    # Don't let someone delete themselves
+    if target_user == session.get('username'):
+        return jsonify({'success': False, 'message': 'Safety: Cannot revoke your own access'}), 400
+
+    try:
+        conn = db_connect()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM users WHERE username = %s", (target_user,))
+        conn.commit()
+        cur.close(); conn.close()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 # ─── API: DATA & LOGS ─────────────────────────────────
 @app.route('/api/logs')
@@ -143,6 +184,10 @@ def api_stats():
         return jsonify({'critical': critical, 'total': total, 'logins': logins, 'failed': failed, 'snaps': snaps})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ─── START NETWORK DETECTOR ───────────────────────────
+detector_thread = threading.Thread(target=start_detector, daemon=True)
+detector_thread.start()
 
 # ─── RUN SERVER ───────────────────────────────────────
 if __name__ == '__main__':
