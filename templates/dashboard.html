@@ -5,149 +5,477 @@
     <title>Netad // System Console</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
-        
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&family=Orbitron:wght@900&display=swap'); 
+        /* ─── DARK THEME (default) ──────────────────── */
         :root {
-            --bg-canvas: #010409; --bg-surface: #0d1117; --bg-header: #161b22; 
-            --border: #30363d; --accent: #a78bfa; --text-main: #e6edf3;
-            --text-muted: #8b949e; --emerald: #3fb950; --rose: #f85149; --radius: 14px;
+            --bg-canvas:   #010409;
+            --bg-surface:  #0d1117;
+            --bg-header:   #161b22;
+            --bg-inset:    #090d13;
+            --border:      #30363d;
+            --border-sub:  #21262d;
+            --accent:      #a78bfa;
+            --accent-dim:  rgba(167,139,250,.10);
+            --accent-glow: rgba(167,139,250,.18);
+            --text-main:   #e6edf3;
+            --text-muted:  #8b949e;
+            --emerald:     #3fb950;
+            --rose:        #f85149;
+            --amber:       #d29922;
+
+            /* elevation */
+            --shadow-sm:   none;
+            --shadow-md:   none;
+            --shadow-lg:   none;
+            --radius:      14px;
         }
 
-        body.light-theme { 
-            --bg-canvas: #f8fafc; --bg-surface: #ffffff; --bg-header: #f1f5f9; --border: #cbd5e1; --text-main: #0f172a; --accent: #7c3aed; --text-muted: #334155;
+        /* ─── LIGHT THEME ───────────────────────────── */
+        body.light-theme {
+            --bg-canvas:   #edf0f5;
+            --bg-surface:  #ffffff;
+            --bg-header:   #f4f6fa;
+            --bg-inset:    #f0f3f8;
+            --border:      #d9dfe8;
+            --border-sub:  #e8ecf2;
+            --accent:      #6d28d9;
+            --accent-dim:  rgba(109,40,217,.07);
+            --accent-glow: rgba(109,40,217,.12);
+            --text-main:   #111827;
+            --text-muted:  #4b5563;
+            --emerald:     #16a34a;
+            --rose:        #dc2626;
+            --amber:       #b45309;
+
+            /* real elevation in light mode */
+            --shadow-sm:   0 1px 3px rgba(15,23,42,.07), 0 1px 2px rgba(15,23,42,.05);
+            --shadow-md:   0 4px 12px rgba(15,23,42,.08), 0 2px 4px rgba(15,23,42,.05);
+            --shadow-lg:   0 8px 24px rgba(15,23,42,.10), 0 4px 8px rgba(15,23,42,.06);
         }
 
-        * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
-        body { 
-            background-color: var(--bg-canvas); 
-            font-family: 'Inter', sans-serif; color: var(--text-main); margin: 0; overflow: hidden;
-            position: relative; font-size: 15px;
+        body {
+            background-color: var(--bg-canvas);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+            margin: 0; overflow: hidden; position: relative; font-size: 15px;
         }
 
-        .particle-container { position: absolute; inset: 0; z-index: -1; background: radial-gradient(circle at center, #11151c 0%, var(--bg-canvas) 100%); overflow: hidden; }
-        .dot { position: absolute; width: 3px; height: 3px; background: var(--accent); border-radius: 50%; opacity: 0; animation: drift var(--d) linear infinite; }
-        @keyframes drift { 0% { transform: translateY(105vh); opacity: 0; } 20% { opacity: 0.3; } 80% { opacity: 0.3; } 100% { transform: translateY(-10vh); opacity: 0; } }
+        /* ─── LIGHT MODE CANVAS TEXTURE ─────────────── */
+        body.light-theme::before {
+            content: "";
+            position: fixed; inset: 0; z-index: -1; pointer-events: none;
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(109,40,217,.04) 0%, transparent 60%),
+                radial-gradient(circle at 80% 20%, rgba(16,163,74,.03) 0%, transparent 50%);
+        }
 
-        .service-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; transition: 0.3s; }
-        .service-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+        /* ─── PARTICLES (dark only) ──────────────────── */
+        .particle-container {
+            position: absolute; inset: 0; z-index: -1;
+            background: radial-gradient(circle at center, #11151c 0%, var(--bg-canvas) 100%);
+            overflow: hidden;
+        }
+        body.light-theme .particle-container { background: none; }
+        .dot {
+            position: absolute; width: 3px; height: 3px;
+            background: var(--accent); border-radius: 50%;
+            opacity: 0; animation: drift var(--d) linear infinite;
+        }
+        body.light-theme .dot { display: none; }
+        @keyframes drift {
+            0%   { transform: translateY(105vh); opacity: 0; }
+            20%  { opacity: 0.3; }
+            80%  { opacity: 0.3; }
+            100% { transform: translateY(-10vh); opacity: 0; }
+        }
 
-        .utility-header { background: var(--bg-header); border-bottom: 1px solid var(--border); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-top-left-radius: inherit; border-top-right-radius: inherit; }
-        .utility-header span, .utility-header h3 { color: var(--text-main) !important; font-size: 14px; font-weight: 700; }
+        /* ─── CARD BASE ──────────────────────────────── */
+        .service-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: flex; flex-direction: column; overflow: hidden;
+            transition: border-color .25s, box-shadow .25s, transform .2s;
+            box-shadow: var(--shadow-md);
+        }
+        .service-card:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow-lg), 0 0 0 1px var(--accent-glow);
+            transform: translateY(-1px);
+        }
 
-        .filter-btn { padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; transition: 0.2s; }
-        .filter-btn.active { background: #30363d !important; color: #ffffff !important; border-color: var(--text-muted); }
+        /* Light mode: accent left-border on stat cards */
+        body.light-theme .stat-card {
+            border-left: 3px solid var(--accent);
+            background: linear-gradient(135deg, #fff 70%, var(--accent-dim) 100%);
+        }
+        body.light-theme .stat-card.rose-accent  { border-left-color: var(--rose); background: linear-gradient(135deg, #fff 70%, rgba(220,38,38,.05) 100%); }
+        body.light-theme .stat-card.green-accent  { border-left-color: var(--emerald); background: linear-gradient(135deg, #fff 70%, rgba(22,163,74,.05) 100%); }
 
-        .icon-btn { display: flex; align-items: center; justify-content: center; padding: 10px; border-radius: 12px; border: 1px solid var(--border); color: var(--accent); background: rgba(167, 139, 250, 0.05); transition: all 0.2s; cursor: pointer; }
-        .icon-btn:hover { background: var(--accent); color: #000; border-color: transparent; }
+        /* ─── PANEL HEADER ───────────────────────────── */
+        .utility-header {
+            background: var(--bg-header);
+            border-bottom: 1px solid var(--border);
+            padding: 13px 18px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-top-left-radius: inherit; border-top-right-radius: inherit;
+        }
+        body.light-theme .utility-header {
+            background: linear-gradient(180deg, #f8fafd 0%, #f1f5f9 100%);
+            box-shadow: 0 1px 0 var(--border-sub);
+        }
+        .utility-header span, .utility-header h3 {
+            color: var(--text-main) !important;
+            font-size: 11px; font-weight: 800; letter-spacing: .08em;
+            text-transform: uppercase; font-family: 'IBM Plex Mono', monospace;
+        }
 
-        .heartbeat { position: relative; width: 8px; height: 8px; background: var(--emerald); border-radius: 50%; }
-        .heartbeat::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--emerald); animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(3.5); opacity: 0; } }
+        /* ─── FILTER BUTTONS ─────────────────────────── */
+        .filter-btn {
+            padding: 5px 13px; border-radius: 7px;
+            font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+            border: 1px solid var(--border); background: transparent;
+            color: var(--text-muted); cursor: pointer; transition: .2s;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .filter-btn:hover { color: var(--text-main); border-color: var(--accent); }
+        .filter-btn.active {
+            background: var(--accent-dim) !important;
+            color: var(--accent) !important;
+            border-color: var(--accent) !important;
+        }
+        body.light-theme .filter-btn.active {
+            background: rgba(109,40,217,.10) !important;
+            box-shadow: inset 0 0 0 1px rgba(109,40,217,.2);
+        }
 
-        #terminal-out::after { content: "_"; animation: blink 1s infinite; color: var(--emerald); margin-left: 6px; }
-        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        /* ─── ICON BUTTONS ───────────────────────────── */
+        .icon-btn {
+            display: flex; align-items: center; justify-content: center;
+            padding: 9px; border-radius: 10px; border: 1px solid var(--border);
+            color: var(--accent); background: var(--accent-dim);
+            transition: all .2s; cursor: pointer;
+        }
+        .icon-btn:hover { background: var(--accent); color: #fff; border-color: transparent; }
+        body.light-theme .icon-btn:hover { color: #fff; }
 
-        .railway-sidebar { width: 72px; background: var(--bg-canvas); border-right: 1px solid var(--border); z-index: 50; }
-        .nav-icon { color: var(--text-muted); transition: 0.2s; cursor: pointer; padding: 12px; border-radius: 14px; margin: 6px; }
-        .nav-icon.active { color: var(--accent); background: rgba(167, 139, 250, 0.1); border: 1px solid rgba(167, 139, 250, 0.2); }
+        /* ─── STATUS DOT ─────────────────────────────── */
+        .heartbeat { position: relative; width: 8px; height: 8px; background: var(--emerald); border-radius: 50%; flex-shrink: 0; }
+        .heartbeat::after {
+            content: ""; position: absolute; inset: 0;
+            border-radius: 50%; background: var(--emerald);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { transform: scale(1); opacity: .8; } 100% { transform: scale(3.5); opacity: 0; } }
 
-        /* IMPROVED: TYPING BOX SIZE AND VISIBILITY */
-        input { background: var(--bg-canvas) !important; border: 1.5px solid var(--border) !important; color: var(--text-main) !important; font-family: 'JetBrains Mono', monospace; padding: 16px; font-size: 14px; border-radius: 10px; transition: border-color 0.2s; }
-        input:focus { border-color: var(--accent) !important; outline: none; }
-        body.light-theme .sticky th { color: #1e293b !important; }
-        
-        .spin-active { animation: spin 0.6s linear; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        /* ─── TERMINAL LINE ──────────────────────────── */
+        #terminal-out { color: var(--emerald); }
+        #terminal-out::after { content: "_"; animation: blink 1s infinite; margin-left: 4px; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
+        /* ─── SIDEBAR ────────────────────────────────── */
+        .railway-sidebar {
+            width: 68px; background: var(--bg-surface);
+            border-right: 1px solid var(--border);
+            z-index: 50; box-shadow: var(--shadow-sm);
+        }
+        .nav-icon {
+            color: var(--text-muted); transition: .2s; cursor: pointer;
+            padding: 11px; border-radius: 12px; margin: 5px;
+        }
+        .nav-icon.active {
+            color: var(--accent); background: var(--accent-dim);
+            border: 1px solid var(--accent-glow);
+        }
+        .nav-icon:not(.active):hover { color: var(--text-main); background: var(--bg-inset); }
+
+        /* ─── TABLE ──────────────────────────────────── */
+        .col-ts     { width: 18%; min-width: 160px; }
+        .col-node   { width: 10%; min-width: 100px; }
+        .col-ip     { width: 15%; min-width: 140px; }
+        .col-type   { width: 10%; min-width: 110px; }
+        .col-action { width: 37%; }
+        .col-stat   { width: 10%; min-width: 100px; }
+        table { table-layout: fixed; width: 100%; }
+
+        body.light-theme .sticky-head {
+            background: var(--bg-header) !important;
+            box-shadow: 0 2px 4px rgba(15,23,42,.06);
+        }
+        body.light-theme .sticky-head th { color: var(--text-muted) !important; }
+
+        /* ─── EVENT TYPE BADGE ───────────────────────── */
+        .type-badge {
+            background: #1a2233; color: #c9d1d9;
+            padding: 3px 10px; border-radius: 5px;
+            font-weight: 800; font-size: 9px; letter-spacing: .05em;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        body.light-theme .type-badge {
+            background: rgba(109,40,217,.09);
+            color: var(--accent);
+            border: 1px solid rgba(109,40,217,.15);
+        }
+
+        /* ─── INPUTS (EXACT MATCH FOR LOGIN INPUTS) ─────────────────────────────────── */
+        input {
+            width: 100%;
+            background: #9ca3af !important; /* Solid light grey background */
+            border: none !important; /* No borders */
+            color: #111827 !important; /* Dark text for readability */
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 16px 18px !important; /* Much more space inside the box */
+            border-radius: 8px !important; /* Smooth rounded corners */
+            transition: box-shadow .2s, background .2s, transform .2s;
+            outline: none;
+        }
+        input::placeholder { color: #475569 !important; font-weight: 600; }
+        input:focus {
+            background: #cbd5e1 !important; /* Slightly lighter on focus */
+            box-shadow: 0 0 0 3px rgba(167,139,250,.4) !important; /* Purple glow */
+            transform: translateY(-1px);
+        }
+        input:disabled { opacity: .5; cursor: not-allowed; }
+
+        body.light-theme .text-zinc-500 { color: #475569 !important; }
+        body.light-theme .text-zinc-400 { color: #1e293b !important; }
+
+        /* ─── SPIN ANIMATION ─────────────────────────── */
+        .spin-active { animation: spin .6s linear; }
+        @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+        /* ─── DRAWERS ────────────────────────────────── */
         .drawer-overlay { pointer-events: none; visibility: hidden; }
         .drawer-overlay.active { pointer-events: auto; visibility: visible; }
 
-        /* FIXED: TABLE COLUMN WIDTHS FOR PERFECT ALIGNMENT */
-        .col-ts { width: 18%; min-width: 160px; }
-        .col-node { width: 10%; min-width: 100px; }
-        .col-ip { width: 15%; min-width: 140px; }
-        .col-type { width: 10%; min-width: 110px; }
-        .col-action { width: 37%; }
-        .col-stat { width: 10%; min-width: 100px; }
-        table { table-layout: fixed; width: 100%; }
+        body.light-theme .drawer-panel {
+            background: var(--bg-surface);
+            box-shadow: -8px 0 40px rgba(15,23,42,.12);
+        }
 
-        /* FIXED: READABILITY FOR EVENT PILLS IN LIGHT MODE */
-        .type-badge { background-color: #1f2937; color: #f9fafb; padding: 4px 12px; border-radius: 6px; font-weight: 800; font-size: 9px; }
+        /* ─── THREAT ALERT BANNER ────────────────────── */
+        #brute-alert {
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px rgba(248,81,73,.3), 0 2px 8px rgba(0,0,0,.2);
+        }
+        body.light-theme #brute-alert { box-shadow: 0 8px 32px rgba(220,38,38,.25); }
+
+        /* ─── VIDEO BEZEL ─────────────────────────────── */
+        .video-bezel {
+            background: #000;
+            display: flex; align-items: center; justify-content: center;
+            flex: 1; overflow: hidden; position: relative;
+        }
+        body.light-theme .video-bezel { background: #0d1117; border-radius: 4px; margin: 8px; }
+        .video-bezel::before {
+            content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.04) 2px, rgba(0,0,0,.04) 4px);
+        }
+
+        /* ─── LIVE LOG ROWS ──────────────────────────── */
+        .log-row { padding: 10px 14px; border-bottom: 1px solid var(--border-sub); transition: background .15s; }
+        .log-row:hover { background: var(--accent-dim); }
+        body.light-theme .log-row:hover { background: var(--bg-inset); }
+
+        /* ─── BLOCKED IP BADGE ───────────────────────── */
+        .blocked-badge {
+            font-size: 9px; font-weight: 800; letter-spacing: .06em;
+            background: rgba(248,81,73,.12); color: var(--rose);
+            border: 1px solid rgba(248,81,73,.25);
+            padding: 2px 8px; border-radius: 5px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        body.light-theme .blocked-badge {
+            background: rgba(220,38,38,.08);
+            border-color: rgba(220,38,38,.2);
+        }
+
+        /* ─── STAT COUNTER FONT ──────────────────────── */
+        /* ─── STAT COUNTER FONT ──────────────────────── */
+.stat-num { 
+    font-family: 'Orbitron', sans-serif; 
+    font-weight: 900; 
+    letter-spacing: 2px; 
+}
     </style>
 </head>
 <body class="flex h-screen w-screen overflow-hidden">
 
     <div class="particle-container" id="particles"></div>
 
-    <div id="brute-alert" class="hidden fixed top-8 right-8 z-[1000] bg-rose-600 text-white py-4 px-6 font-bold text-[13px] rounded-xl shadow-2xl border border-rose-400/30 flex items-center gap-4 animate-bounce">
-        <span>🚨 SECURITY ALERT: NEW BRUTE FORCE ATTEMPT DETECTED</span>
-        <button onclick="closeAlert()" class="hover:bg-white/20 p-1 rounded-md transition-colors">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    <div id="brute-alert" class="hidden fixed top-5 right-5 z-[1000] bg-rose-600 text-white py-3 px-5 font-bold text-[12px] rounded-xl border border-rose-400/30 flex items-center gap-4">
+        <div class="flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span id="alert-msg">🚨 BRUTE FORCE ATTACK DETECTED</span>
+        </div>
+        <button onclick="closeAlert()" class="hover:bg-white/20 p-1 rounded-md transition-colors ml-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
     </div>
 
     <aside class="railway-sidebar flex flex-col items-center py-8 shrink-0">
-        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center mb-10 shadow-sm"><div class="w-5 h-5 bg-black rounded-sm"></div></div>
-        
-        <nav class="flex flex-col gap-6">
-            <div id="btn-dash" class="nav-icon active" onclick="showSection('view-dashboard')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg></div>
-            <div id="btn-arch" class="nav-icon" onclick="showSection('view-archive')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-            <div id="btn-users" class="nav-icon" onclick="showSection('view-users')"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div class="w-9 h-9 bg-white rounded-xl flex items-center justify-center mb-10 shadow-sm border border-border">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <nav class="flex flex-col gap-5">
+            <div id="btn-dash"  class="nav-icon active" onclick="showSection('view-dashboard')" title="Dashboard">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+            </div>
+            <div id="btn-arch"  class="nav-icon" onclick="showSection('view-archive')" title="Archive">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <div id="btn-users" class="nav-icon" onclick="showSection('view-users')" title="Users">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div id="btn-threats" class="nav-icon" onclick="showSection('view-threats')" title="Threats">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
         </nav>
-
-        <div class="mt-auto flex flex-col items-center gap-6">
-            <div class="nav-icon" onclick="toggleSettings(true)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
-            <div class="nav-icon hover:text-rose-500" onclick="logout()"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+        <div class="mt-auto flex flex-col items-center gap-5">
+            <div class="nav-icon" onclick="toggleSettings(true)" title="Settings">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </div>
+            <div class="nav-icon hover:text-rose-500" onclick="logout()" title="Logout">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </div>
         </div>
     </aside>
 
-    <main class="flex-1 flex flex-col p-8 overflow-hidden">
-        <header class="flex justify-between items-center mb-8 shrink-0">
-            <div class="flex items-center gap-3 text-[14px] font-bold">
-                <span class="text-zinc-500">Netad</span><span class="text-zinc-700">/</span><span>production</span>
-                <span class="ml-6 flex items-center gap-3 bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20 text-[12px] text-emerald-500">
+    <main class="flex-1 flex flex-col p-6 overflow-hidden gap-6">
+
+        <header class="flex justify-between items-center shrink-0">
+            <div class="flex items-center gap-3 text-[13px] font-bold" style="font-family:'IBM Plex Mono',monospace">
+                <span style="color:var(--text-muted)">netad</span>
+                <span style="color:var(--border)">/</span>
+                <span>production</span>
+                <span class="ml-4 flex items-center gap-2 px-3 py-1 rounded-lg border text-[11px]"
+                      style="background:rgba(63,185,80,.08);border-color:rgba(63,185,80,.2);color:var(--emerald)">
                     <div class="heartbeat"></div> SYSTEM LIVE
                 </span>
+                <span id="blocked-badge" class="hidden blocked-badge">0 IPs BLOCKED</span>
             </div>
-            <div class="flex items-center gap-6">
-                <button onclick="manualRefresh()" class="flex items-center gap-2 text-zinc-500 hover:text-accent transition-colors">
-                    <svg id="refresh-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                    <span class="text-[11px] font-black uppercase tracking-widest">Manual Sync</span>
+            <div class="flex items-center gap-5">
+                <button onclick="manualRefresh()" class="flex items-center gap-2 transition-colors" style="color:var(--text-muted)" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'">
+                    <svg id="refresh-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase">Manual Sync</span>
                 </button>
-                <div id="clock" class="text-[13px] font-mono text-zinc-500"></div>
+                <div id="clock" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-muted)"></div>
             </div>
         </header>
 
-        <section id="view-dashboard" class="flex-1 flex flex-col min-h-0">
-            <div class="grid grid-cols-4 gap-6 mb-8 shrink-0">
-                <div class="service-card p-6"><p class="text-[12px] font-bold text-zinc-500 uppercase mb-2">Critical</p><p id="stat-critical" class="text-3xl font-mono font-bold text-rose-500 leading-none">0</p></div>
-                <div class="service-card p-6"><p class="text-[12px] font-bold text-zinc-500 uppercase mb-2">Logs</p><p id="stat-total" class="text-3xl font-mono font-bold text-text-main leading-none">0</p></div>
-                <div class="service-card p-6"><p class="text-[12px] font-bold text-zinc-500 uppercase mb-2">Access Requests</p><p id="stat-logins" class="text-3xl font-mono font-bold text-text-main leading-none">0</p></div>
-                <div class="service-card p-6 relative overflow-hidden bg-emerald-500/5">
-                    <p class="text-[12px] font-bold text-zinc-500 uppercase mb-2 z-10 relative">Status</p>
-                    <p class="text-3xl font-bold text-emerald-500 uppercase italic leading-none z-10 relative">Armed</p>
-                    <svg class="absolute bottom-0 left-0 w-full h-16 opacity-20" viewBox="0 0 100 20"><path d="M0 10 Q 12.5 0 25 10 T 50 10 T 75 10 T 100 10" fill="none" stroke="#10b981" stroke-width="0.5"><animate attributeName="d" dur="3s" repeatCount="indefinite" values="M0 10 Q 12.5 0 25 10 T 50 10 T 75 10 T 100 10; M0 10 Q 12.5 20 25 10 T 50 10 T 75 10 T 100 10; M0 10 Q 12.5 0 25 10 T 50 10 T 75 10 T 100 10" /></path></svg>
+        <section id="view-dashboard" class="flex-1 flex flex-col min-h-0 gap-6">
+
+            <div class="grid grid-cols-4 gap-4 shrink-0">
+                <div class="service-card stat-card rose-accent p-5">
+                    <p class="text-[10px] font-black uppercase tracking-widest mb-2" style="color:var(--text-muted);font-family:'IBM Plex Mono',monospace">Critical</p>
+                    <p id="stat-critical" class="stat-num text-3xl leading-none" style="color:var(--rose)">0</p>
+                </div>
+                <div class="service-card stat-card p-5">
+                    <p class="text-[10px] font-black uppercase tracking-widest mb-2" style="color:var(--text-muted);font-family:'IBM Plex Mono',monospace">Total Logs</p>
+                    <p id="stat-total" class="stat-num text-3xl leading-none">0</p>
+                </div>
+                <div class="service-card stat-card p-5">
+                    <p class="text-[10px] font-black uppercase tracking-widest mb-2" style="color:var(--text-muted);font-family:'IBM Plex Mono',monospace">Access Req.</p>
+                    <p id="stat-logins" class="stat-num text-3xl leading-none">0</p>
+                </div>
+                <div class="service-card stat-card green-accent p-5 relative overflow-hidden">
+                    <p class="text-[10px] font-black uppercase tracking-widest mb-2 relative z-10" style="color:var(--text-muted);font-family:'IBM Plex Mono',monospace">Status</p>
+                    <p class="stat-num text-3xl italic uppercase leading-none relative z-10" style="color:var(--emerald)">Armed</p>
+                    <svg class="absolute bottom-0 left-0 w-full h-12 opacity-25" viewBox="0 0 100 20">
+                        <path d="M0 10 Q 12.5 0 25 10 T 50 10 T 75 10 T 100 10" fill="none" stroke="#3fb950" stroke-width="0.8">
+                            <animate attributeName="d" dur="3s" repeatCount="indefinite" values="M0 10 Q 12.5 0 25 10 T 50 10 T 75 10 T 100 10;M0 10 Q 12.5 20 25 10 T 50 10 T 75 10 T 100 10;M0 10 Q 12.5 0 25 10 T 50 10 T 75 10 T 100 10"/>
+                        </path>
+                    </svg>
                 </div>
             </div>
 
-            <div class="flex-1 grid grid-cols-12 gap-8 min-h-0">
+            <div class="flex-1 grid grid-cols-12 gap-5 min-h-0">
+
                 <div class="col-span-8 service-card">
-                    <div class="utility-header"><span>LIVE FEED</span><div class="flex gap-3"><button onclick="term('Rebooting...')" class="icon-btn" title="Reboot"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button></div></div>
-                    <div class="flex-1 bg-black flex items-center justify-center overflow-hidden"><img id="video-stream" src="/video_feed" class="max-w-full max-h-full object-contain"></div>
-                    <div class="p-4 border-t border-border flex gap-4 shrink-0"><div id="terminal-out" class="flex-1 font-mono text-[13px] text-emerald-500/80 h-6 overflow-hidden truncate font-bold">[SYSTEM] Active</div></div>
+                    <div class="utility-header">
+                        <span>LIVE FEED</span>
+                        <div class="flex gap-2">
+                            <button onclick="term('Rebooting...')" class="icon-btn" title="Reboot">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="video-bezel flex-1">
+                        <img id="video-stream" src="/video_feed" class="max-w-full max-h-full object-contain relative z-10">
+                    </div>
+                    <div class="p-3 border-t shrink-0" style="border-color:var(--border)">
+                        <div id="terminal-out" class="font-mono text-[12px] h-5 overflow-hidden truncate font-bold" style="font-family:'IBM Plex Mono',monospace">[SYSTEM] Active</div>
+                    </div>
                 </div>
-                <div class="col-span-4 flex flex-col gap-8 min-h-0">
+
+                <div class="col-span-4 flex flex-col gap-5 min-h-0">
                     <div class="service-card flex-1 min-h-0">
-                        <div class="utility-header"><span>Security</span><div class="flex gap-2"><button onclick="setFilter('sec', 'all')" id="sec-all" class="filter-btn active">All</button><button onclick="setFilter('sec', 'Critical')" id="sec-crit" class="filter-btn">Crit</button></div></div>
-                        <div id="log-list" class="flex-1 overflow-y-auto font-mono text-[13px] divide-y divide-border/30"></div>
+                        <div class="utility-header">
+                            <span>Security Events</span>
+                            <div class="flex gap-2">
+                                <button onclick="setFilter('sec','all')"      id="sec-all"  class="filter-btn active">All</button>
+                                <button onclick="setFilter('sec','Critical')" id="sec-crit" class="filter-btn">Crit</button>
+                            </div>
+                        </div>
+                        <div id="log-list" class="flex-1 overflow-y-auto" style="font-family:'IBM Plex Mono',monospace"></div>
                     </div>
                     <div class="service-card flex-1 min-h-0">
-                        <div class="utility-header"><span>Auth</span><div class="flex gap-1"><button onclick="setFilter('auth', 'all')" id="auth-all" class="filter-btn active">All</button><button onclick="setFilter('auth', 'Failed')" id="auth-fail" class="filter-btn">Fail</button></div></div>
-                        <div id="login-log-list" class="flex-1 overflow-y-auto font-mono text-[13px] divide-y divide-border/30"></div>
+                        <div class="utility-header">
+                            <span>Auth Events</span>
+                            <div class="flex gap-2">
+                                <button onclick="setFilter('auth','all')"    id="auth-all"  class="filter-btn active">All</button>
+                                <button onclick="setFilter('auth','Failed')" id="auth-fail" class="filter-btn">Fail</button>
+                            </div>
+                        </div>
+                        <div id="login-log-list" class="flex-1 overflow-y-auto" style="font-family:'IBM Plex Mono',monospace"></div>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="view-threats" class="hidden flex-1 flex flex-col min-h-0 gap-5">
+            <div class="grid grid-cols-2 gap-5 shrink-0">
+                <div class="service-card">
+                    <div class="utility-header">
+                        <span>Blocked IPs</span>
+                        <button onclick="refreshThreats()" class="filter-btn">Refresh</button>
+                    </div>
+                    <div id="blocked-list" class="flex-1 overflow-y-auto p-4" style="font-family:'IBM Plex Mono',monospace;font-size:13px;min-height:120px"></div>
+                </div>
+                <div class="service-card">
+                    <div class="utility-header"><span>Real-time Threat Registry</span></div>
+                    <div id="threat-list" class="flex-1 overflow-y-auto" style="font-family:'IBM Plex Mono',monospace;min-height:120px"></div>
+                </div>
+            </div>
+            <div class="service-card flex-1 min-h-0">
+                <div class="utility-header">
+                    <span>Network Attack Log</span>
+                    <div class="flex gap-2">
+                        <button onclick="setArchFilter('all')"      id="arch-all"  class="filter-btn active">All</button>
+                        <button onclick="setArchFilter('Critical')" id="arch-crit" class="filter-btn">Critical</button>
+                        <button onclick="downloadLogs()"           class="filter-btn ml-2">Export CSV</button>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto">
+                    <table>
+                        <thead class="sticky-head sticky top-0 z-10" style="border-bottom:1px solid var(--border)">
+                            <tr style="color:var(--text-muted);font-size:10px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;font-weight:800">
+                                <th class="p-4 col-ts text-left">Timestamp</th>
+                                <th class="p-4 col-node text-left">Node</th>
+                                <th class="p-4 col-ip text-left">Origin IP</th>
+                                <th class="p-4 col-type text-left">Event</th>
+                                <th class="p-4 col-action text-left">Action Detail</th>
+                                <th class="p-4 col-stat text-center">Severity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="threat-log-table" class="divide-y" style="border-color:var(--border-sub)"></tbody>
+                    </table>
                 </div>
             </div>
         </section>
@@ -156,33 +484,55 @@
             <div class="service-card flex-1">
                 <div class="utility-header">
                     <h3>Team Access Control</h3>
-                    <button onclick="toggleDrawer(true)" class="icon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg></button>
+                    <button onclick="toggleDrawer(true)" class="icon-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
+                    </button>
                 </div>
-                <div class="flex-1 overflow-y-auto"><table class="w-full text-left text-[14px] font-mono border-collapse"><thead class="sticky top-0 bg-bg-header border-b border-border z-10 text-zinc-500 uppercase text-[11px] font-bold"><tr><th class="p-5 w-1/4">Identity</th><th class="p-5 w-1/6">Level</th><th class="p-5 w-1/4">Last Active</th><th class="p-5 w-1/6">Status</th><th class="p-5 w-1/6 text-right">Action</th></tr></thead><tbody id="user-list-table" class="divide-y divide-border/10"></tbody></table></div>
+                <div class="flex-1 overflow-y-auto">
+                    <table>
+                        <thead class="sticky-head sticky top-0 z-10" style="border-bottom:1px solid var(--border)">
+                            <tr style="color:var(--text-muted);font-size:10px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;font-weight:800">
+                                <th class="p-5 w-1/4 text-left">Identity</th>
+                                <th class="p-5 w-1/6 text-left">Level</th>
+                                <th class="p-5 w-1/4 text-left">Last Active</th>
+                                <th class="p-5 w-1/6 text-left">Status</th>
+                                <th class="p-5 w-1/6 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-list-table" class="divide-y" style="border-color:var(--border-sub)"></tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
         <section id="view-archive" class="hidden flex-1 flex flex-col min-h-0">
             <div class="service-card flex-1">
                 <div class="utility-header">
-                    <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-4">
                         <h3>System Audit Ledger</h3>
-                        <div class="h-5 w-[1px] bg-border"></div>
-                        <span id="archive-count" class="text-[12px] font-mono text-zinc-500 uppercase font-black">0 RECORDS FOUND</span>
+                        <div style="width:1px;height:16px;background:var(--border)"></div>
+                        <span id="archive-count" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted);font-weight:800">0 RECORDS</span>
                     </div>
-                    <div class="flex gap-3">
-                        <button onclick="downloadLogs()" class="filter-btn">Export CSV</button>
-                        <div class="h-6 w-[1px] bg-border mx-1"></div>
-                        <button onclick="setArchFilter('all')" id="arch-all" class="filter-btn active">All</button>
-                        <button onclick="setArchFilter('Critical')" id="arch-crit" class="filter-btn">Crit</button>
+                    <div class="flex gap-2">
+                        <button onclick="downloadLogs()"          class="filter-btn">Export CSV</button>
+                        <div style="width:1px;height:16px;background:var(--border);margin:0 4px;align-self:center"></div>
+                        <button onclick="setArchFilter('all')"      id="arch2-all"  class="filter-btn active">All</button>
+                        <button onclick="setArchFilter('Critical')" id="arch2-crit" class="filter-btn">Crit</button>
                     </div>
                 </div>
                 <div class="flex-1 overflow-y-auto">
-                    <table class="w-full text-left text-[15px] font-mono border-collapse">
-                        <thead class="sticky top-0 bg-bg-header border-b border-border z-10 text-zinc-500 uppercase font-bold">
-                            <tr><th class="p-5 col-ts">Timestamp</th><th class="p-5 col-node">Node ID</th><th class="p-5 col-ip">Origin IP</th><th class="p-5 col-type">Event Type</th><th class="p-5 col-action">Detailed Action</th><th class="p-5 col-stat text-center">Severity</th></tr>
+                    <table>
+                        <thead class="sticky-head sticky top-0 z-10" style="border-bottom:1px solid var(--border)">
+                            <tr style="color:var(--text-muted);font-size:10px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;font-weight:800">
+                                <th class="p-4 col-ts text-left">Timestamp</th>
+                                <th class="p-4 col-node text-left">Node</th>
+                                <th class="p-4 col-ip text-left">Origin IP</th>
+                                <th class="p-4 col-type text-left">Event</th>
+                                <th class="p-4 col-action text-left">Detail</th>
+                                <th class="p-4 col-stat text-center">Severity</th>
+                            </tr>
                         </thead>
-                        <tbody id="full-log-table" class="divide-y divide-border/10"></tbody>
+                        <tbody id="full-log-table" class="divide-y" style="border-color:var(--border-sub)"></tbody>
                     </table>
                 </div>
             </div>
@@ -190,51 +540,60 @@
     </main>
 
     <div id="revoke-modal" class="hidden fixed inset-0 z-[2000] flex items-center justify-center p-6">
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-md" onclick="closeRevokeModal()"></div>
-        <div class="relative w-full max-w-md bg-bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden font-mono">
+        <div class="absolute inset-0 backdrop-blur-md" style="background:rgba(0,0,0,.7)" onclick="closeRevokeModal()"></div>
+        <div class="relative w-full max-w-sm rounded-2xl overflow-hidden" style="background:var(--bg-surface);border:1px solid var(--border);box-shadow:0 24px 64px rgba(0,0,0,.4)">
             <div class="p-8 text-center">
-                <div class="w-16 h-16 bg-rose-500/10 border border-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f85149" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-5" style="background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2)">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--rose)" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 </div>
-                <h3 class="text-xl font-bold text-text-main mb-2 uppercase tracking-tight font-mono">Revoke Access?</h3>
-                <p class="text-zinc-500 text-sm font-mono mb-8">Confirm deletion for Identity: <span id="revoke-target-id" class="text-rose-500 font-bold"></span></p>
-                <div class="flex gap-4">
-                    <button onclick="closeRevokeModal()" class="flex-1 border border-border text-zinc-400 font-bold py-4 rounded-xl hover:bg-white/5 uppercase text-[11px] font-mono">Cancel</button>
-                    <button onclick="executeRevoke()" class="flex-1 bg-rose-600 text-white font-bold py-4 rounded-xl hover:bg-rose-500 transition-all uppercase text-[11px] font-mono">Confirm</button>
+                <h3 style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;margin-bottom:8px">Revoke Access?</h3>
+                <p style="color:var(--text-muted);font-size:13px;font-family:'IBM Plex Mono',monospace;margin-bottom:28px">
+                    Deleting: <span id="revoke-target-id" style="color:var(--rose);font-weight:700"></span>
+                </p>
+                <div class="flex gap-3">
+                    <button onclick="closeRevokeModal()" class="flex-1 py-3 rounded-xl font-bold text-[11px] uppercase" style="border:1px solid var(--border);color:var(--text-muted);background:transparent;cursor:pointer;transition:.2s" onmouseover="this.style.background='var(--bg-inset)'" onmouseout="this.style.background='transparent'">Cancel</button>
+                    <button onclick="executeRevoke()"   class="flex-1 py-3 rounded-xl font-bold text-[11px] uppercase text-white" style="background:var(--rose);cursor:pointer;border:none;transition:.2s" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='none'">Confirm Revoke</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="user-drawer" class="drawer-overlay fixed inset-0 z-[100] translate-x-full transition-transform duration-300 flex justify-end">
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="toggleDrawer(false)"></div>
-        <div class="relative w-96 bg-bg-surface border-l border-border h-full p-10 shadow-2xl">
-            <h3 class="text-xl font-bold mb-8 text-text-main uppercase tracking-widest font-mono">Provision User</h3>
-            <form id="add-user-form" class="space-y-8">
-                <div><label class="text-[13px] font-bold text-zinc-500 block mb-3 uppercase font-mono">Identity</label><input type="text" id="new-username" class="w-full rounded-lg px-4 py-4 text-sm" required placeholder="operator_id"></div>
-                <div><label class="text-[13px] font-bold text-zinc-500 block mb-3 uppercase font-mono">Key</label><input type="password" id="new-password" class="w-full rounded-lg px-4 py-4 text-sm" required placeholder="••••••••"></div>
-                <div id="drawer-msg" class="text-[12px] font-bold text-center min-h-[20px] uppercase font-mono mb-4"></div>
-                <button type="submit" id="provision-btn" class="w-full bg-accent text-white font-black text-[13px] py-5 rounded-2xl uppercase tracking-widest cursor-pointer hover:brightness-110 shadow-xl border-none">Authorize Session</button>
+        <div class="absolute inset-0 backdrop-blur-sm" style="background:rgba(0,0,0,.5)" onclick="toggleDrawer(false)"></div>
+        <div class="drawer-panel relative w-96 h-full p-10 shadow-2xl" style="background:var(--bg-surface);border-left:1px solid var(--border)">
+            <h3 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:32px">Provision User</h3>
+            <form id="add-user-form" class="space-y-7">
+                <div>
+                    <label style="font-size:10px;font-weight:800;color:var(--text-muted);display:block;margin-bottom:10px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;letter-spacing:.08em">Identity</label>
+                    <input type="text" id="new-username" class="w-full" required placeholder=" ">
+                </div>
+                <div>
+                    <label style="font-size:10px;font-weight:800;color:var(--text-muted);display:block;margin-bottom:10px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;letter-spacing:.08em">Security Key</label>
+                    <input type="password" id="new-password" class="w-full" required placeholder=" ">
+                </div>
+                <div id="drawer-msg" style="font-size:11px;font-weight:800;text-align:center;min-height:18px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace"></div>
+                <button type="submit" id="provision-btn" class="w-full py-4 rounded-2xl font-black text-[12px] uppercase tracking-widest text-white border-none cursor-pointer transition-all" style="background:var(--accent);letter-spacing:.12em;box-shadow:0 4px 20px var(--accent-glow)" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='none'">Authorize Session</button>
             </form>
         </div>
     </div>
 
     <div id="settings-drawer" class="drawer-overlay fixed inset-0 z-[100] translate-x-full transition-transform duration-300 flex justify-end">
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="toggleSettings(false)"></div>
-        <div class="relative w-96 bg-bg-surface border-l border-border h-full p-10 shadow-2xl">
-            <h3 class="text-xl font-bold mb-10 text-text-main uppercase tracking-widest font-mono">Settings</h3>
+        <div class="absolute inset-0 backdrop-blur-sm" style="background:rgba(0,0,0,.5)" onclick="toggleSettings(false)"></div>
+        <div class="drawer-panel relative w-80 h-full p-10 shadow-2xl" style="background:var(--bg-surface);border-left:1px solid var(--border)">
+            <h3 style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:32px">Settings</h3>
             <div>
-                <label class="text-[13px] font-bold text-zinc-500 block mb-4 uppercase font-mono">Console Theme</label>
-                <div class="grid grid-cols-3 gap-3">
-                    <button onclick="setTheme('dark')" id="theme-dark" class="filter-btn py-4 text-[10px] font-bold uppercase active">Dark</button>
-                    <button onclick="setTheme('light')" id="theme-light" class="filter-btn py-4 text-[10px] font-bold uppercase">Light</button>
-                    <button onclick="setTheme('system')" id="theme-system" class="filter-btn py-4 text-[10px] font-bold uppercase">Auto</button>
+                <label style="font-size:10px;font-weight:800;color:var(--text-muted);display:block;margin-bottom:12px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;letter-spacing:.08em">Console Theme</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setTheme('dark')"   id="theme-dark"   class="filter-btn py-3 active">Dark</button>
+                    <button onclick="setTheme('light')"  id="theme-light"  class="filter-btn py-3">Light</button>
+                    <button onclick="setTheme('system')" id="theme-system" class="filter-btn py-3">Auto</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // ─── PARTICLES ──────────────────────────────────────
         const container = document.getElementById('particles');
         for (let i = 0; i < 75; i++) {
             const dot = document.createElement('div'); dot.className = 'dot';
@@ -244,42 +603,64 @@
             container.appendChild(dot);
         }
 
-        let currentSecFilter = 'all', currentAuthFilter = 'all', currentArchFilter = 'all';
-        let lastCriticalCount = 0, isFirstLoad = true, userToRevoke = null;
+        // ─── STATE ──────────────────────────────────────────
+        let currentSecFilter  = 'all';
+        let currentAuthFilter = 'all';
+        let currentArchFilter = 'all';
+        let lastCriticalCount = 0;
+        let isFirstLoad       = true;
+        let userToRevoke      = null;
+        let allSecLogs        = [];
 
+        // ─── ALERT ──────────────────────────────────────────
         function closeAlert() { document.getElementById('brute-alert').classList.add('hidden'); }
-        
-        function toggleDrawer(isOpen) { 
-            const d = document.getElementById('user-drawer');
-            d.classList.toggle('translate-x-full', !isOpen); d.classList.toggle('active', isOpen);
-            document.getElementById('drawer-msg').innerText = ''; 
-        }
-        function toggleSettings(isOpen) { 
-            const s = document.getElementById('settings-drawer');
-            s.classList.toggle('translate-x-full', !isOpen); s.classList.toggle('active', isOpen);
+
+        function showAlert(msg) {
+            const el = document.getElementById('brute-alert');
+            document.getElementById('alert-msg').innerText = '🚨 ' + msg;
+            el.classList.remove('hidden');
+            clearTimeout(showAlert._timer);
+            showAlert._timer = setTimeout(() => el.classList.add('hidden'), 12000);
         }
 
+        // ─── DRAWER / MODAL HELPERS ─────────────────────────
+        function toggleDrawer(isOpen) {
+            const d = document.getElementById('user-drawer');
+            d.classList.toggle('translate-x-full', !isOpen);
+            d.classList.toggle('active', isOpen);
+            document.getElementById('drawer-msg').innerText = '';
+        }
+        function toggleSettings(isOpen) {
+            const s = document.getElementById('settings-drawer');
+            s.classList.toggle('translate-x-full', !isOpen);
+            s.classList.toggle('active', isOpen);
+        }
+
+        // ─── SECTION NAVIGATION ─────────────────────────────
         function showSection(id) {
             document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
             document.getElementById(id).classList.remove('hidden');
             document.querySelectorAll('.nav-icon').forEach(n => n.classList.remove('active'));
-            const btnId = id === 'view-dashboard' ? 'btn-dash' : id === 'view-users' ? 'btn-users' : 'btn-arch';
-            const navBtn = document.getElementById(btnId);
-            if(navBtn) navBtn.classList.add('active');
-            if(id === 'view-users') fetchUserList();
+            const map = { 'view-dashboard':'btn-dash','view-archive':'btn-arch','view-users':'btn-users','view-threats':'btn-threats' };
+            const btn = document.getElementById(map[id]);
+            if (btn) btn.classList.add('active');
+            if (id === 'view-users')   fetchUserList();
+            if (id === 'view-threats') refreshThreats();
         }
 
+        // ─── MANUAL SYNC ────────────────────────────────────
         async function manualRefresh() {
             const icon = document.getElementById('refresh-icon');
             icon.classList.add('spin-active');
-            term("MANUAL SYNC_INITIATED...");
-            try { await Promise.all([refresh(), fetchUserList()]); term("SYNC_COMPLETE"); } 
-            catch(e) { term("SYNC_ERROR"); }
+            term("MANUAL SYNC INITIATED...");
+            try { await Promise.all([refresh(), fetchUserList()]); term("SYNC COMPLETE"); }
+            catch(e) { term("SYNC ERROR"); }
             finally { setTimeout(() => icon.classList.remove('spin-active'), 600); }
         }
 
+        // ─── FILTER CONTROLS ────────────────────────────────
         function setFilter(t, v) {
-            if(t === 'sec') {
+            if (t === 'sec') {
                 currentSecFilter = v;
                 document.getElementById('sec-all').classList.toggle('active', v === 'all');
                 document.getElementById('sec-crit').classList.toggle('active', v === 'Critical');
@@ -293,97 +674,231 @@
 
         function setArchFilter(v) {
             currentArchFilter = v;
-            document.getElementById('arch-all').classList.toggle('active', v === 'all');
-            document.getElementById('arch-crit').classList.toggle('active', v === 'Critical');
+            // Update both archive and threat table buttons
+            ['arch-all','arch2-all'].forEach(id => { const el=document.getElementById(id); if(el) el.classList.toggle('active', v==='all'); });
+            ['arch-crit','arch2-crit'].forEach(id => { const el=document.getElementById(id); if(el) el.classList.toggle('active', v==='Critical'); });
             refresh();
         }
 
+        // ─── REVOKE MODAL ────────────────────────────────────
         function revokeUser(username) {
             userToRevoke = username;
             document.getElementById('revoke-target-id').innerText = username.toUpperCase();
             document.getElementById('revoke-modal').classList.remove('hidden');
         }
-
-        function closeRevokeModal() { document.getElementById('revoke-modal').classList.add('hidden'); userToRevoke = null; }
-
+        function closeRevokeModal() {
+            document.getElementById('revoke-modal').classList.add('hidden');
+            userToRevoke = null;
+        }
         async function executeRevoke() {
             if (!userToRevoke) return;
             try {
-                const res = await fetch('/api/revoke_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: userToRevoke }) });
+                const res  = await fetch('/api/revoke_user', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username: userToRevoke}) });
                 const data = await res.json();
                 if (data.success) { term(`REVOKED: ${userToRevoke.toUpperCase()}`); closeRevokeModal(); fetchUserList(); }
                 else { alert("Error: " + data.message); }
-            } catch (e) { term("DATABASE_ERROR"); }
+            } catch(e) { term("DATABASE ERROR"); }
         }
 
+        // ─── USER LIST ───────────────────────────────────────
         async function fetchUserList() {
             try {
-                const res = await fetch('/api/get_users');
+                const res   = await fetch('/api/get_users');
                 const users = await res.json();
                 document.getElementById('user-list-table').innerHTML = users.map(u => `
-                    <tr class="hover:bg-bg-header/40 transition-colors font-mono">
-                        <td class="p-5 font-bold text-text-main">${u.username}</td>
-                        <td class="p-5 text-zinc-500 uppercase text-[9px]">Level 1</td>
-                        <td class="p-5 text-zinc-500 text-[12px] font-mono">${new Date().toLocaleString('en-CA', {hour12:false})}</td>
-                        <td class="p-5 text-emerald-500 text-[11px] font-black uppercase tracking-widest">Active</td>
-                        <td class="p-5 text-right"><button onclick="revokeUser('${u.username}')" class="text-rose-500 opacity-50 hover:opacity-100 text-[10px] font-bold uppercase hover:underline">Revoke</button></td>
+                    <tr style="transition:background .15s;font-family:'IBM Plex Mono',monospace" onmouseover="this.style.background='var(--accent-dim)'" onmouseout="this.style.background='transparent'">
+                        <td class="p-5 font-bold" style="color:var(--text-main)">${u.username}</td>
+                        <td class="p-5" style="color:var(--text-muted);font-size:9px;text-transform:uppercase;font-weight:800">Level 1</td>
+                        <td class="p-5" style="color:var(--text-muted);font-size:12px">${new Date().toLocaleString('en-CA',{hour12:false})}</td>
+                        <td class="p-5" style="color:var(--emerald);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">Active</td>
+                        <td class="p-5 text-right"><button onclick="revokeUser('${u.username}')" style="color:var(--rose);opacity:.5;font-size:10px;font-weight:800;text-transform:uppercase;background:none;border:none;cursor:pointer;transition:opacity .2s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.5'">Revoke</button></td>
                     </tr>`).join('');
-            } catch(e) { document.getElementById('user-list-table').innerHTML = '<tr><td colspan="5" class="p-16 text-center text-zinc-600 font-black uppercase tracking-widest opacity-20 text-sm">Syncing database...</td></tr>'; }
+            } catch(e) {
+                document.getElementById('user-list-table').innerHTML = '<tr><td colspan="5" style="padding:48px;text-align:center;color:var(--text-muted);font-size:12px;font-weight:800;text-transform:uppercase;opacity:.4;font-family:IBM Plex Mono,monospace">Syncing database...</td></tr>';
+            }
         }
 
+        // ─── THREAT PANEL ────────────────────────────────────
+        async function refreshThreats() {
+            try {
+                const [threats, blocked] = await Promise.all([
+                    fetch('/api/threats').then(r => r.json()),
+                    fetch('/api/blocked_ips').then(r => r.json())
+                ]);
+
+                // Blocked IPs list
+                const blockedEntries = Object.entries(blocked);
+                const blockedBadge   = document.getElementById('blocked-badge');
+                if (blockedEntries.length > 0) {
+                    blockedBadge.classList.remove('hidden');
+                    blockedBadge.innerText = `${blockedEntries.length} IP${blockedEntries.length>1?'s':''} BLOCKED`;
+                } else {
+                    blockedBadge.classList.add('hidden');
+                }
+
+                document.getElementById('blocked-list').innerHTML = blockedEntries.length === 0
+    ? `<div style="display:flex;justify-content:center;align-items:center;width:100%;padding:40px 0;color:var(--text-muted);font-size:12px;opacity:.5;">No IPs currently blocked</div>`: blockedEntries.map(([ip, secs]) => `
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border-sub)">
+                            <span style="font-weight:700;font-size:13px;color:var(--rose)">${ip}</span>
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <span style="font-size:10px;color:var(--text-muted)">${secs}s remaining</span>
+                                <button onclick="unblockIp('${ip}')" style="font-size:9px;font-weight:800;text-transform:uppercase;color:var(--accent);background:none;border:none;cursor:pointer;padding:2px 6px;border-radius:4px;border:1px solid var(--accent);opacity:.7" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.7'">Unblock</button>
+                            </div>
+                        </div>`).join('');
+
+                // Threat registry
+                document.getElementById('threat-list').innerHTML = threats.length === 0
+    ? `<div style="display:flex;justify-content:center;align-items:center;width:100%;padding:40px 0;color:var(--text-muted);font-size:12px;opacity:.5;">No threats recorded yet</div>` : threats.map(t => `
+                        <div class="log-row">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+                                <span style="font-weight:700;font-size:13px;color:var(--rose)">${t.ip}</span>
+                                <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:4px;background:rgba(248,81,73,.1);color:var(--rose);border:1px solid rgba(248,81,73,.2)">${t.severity.toUpperCase()}</span>
+                            </div>
+                            <div style="font-size:11px;color:var(--text-muted)">${t.reason}</div>
+                            <div style="font-size:10px;color:var(--text-muted);margin-top:2px;opacity:.6">${t.ts}</div>
+                        </div>`).join('');
+
+            } catch(e) { console.warn('Threat panel error:', e); }
+        }
+
+        async function unblockIp(ip) {
+            await fetch('/api/unblock_ip', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ip}) });
+            refreshThreats();
+        }
+
+        // ─── MAIN DATA REFRESH ───────────────────────────────
         async function refresh() {
             try {
-                const [stats, sec, auth] = await Promise.all([ fetch('/api/stats').then(r => r.json()), fetch('/api/logs').then(r => r.json()), fetch('/api/login_logs').then(r => r.json()) ]);
+                const [stats, sec, auth] = await Promise.all([
+                    fetch('/api/stats').then(r => r.json()),
+                    fetch('/api/logs').then(r => r.json()),
+                    fetch('/api/login_logs').then(r => r.json())
+                ]);
+
+                allSecLogs = sec;
+
                 document.getElementById('stat-critical').innerText = stats.critical;
-                document.getElementById('stat-total').innerText = stats.total;
-                document.getElementById('stat-logins').innerText = stats.logins;
-                
+                document.getElementById('stat-total').innerText    = stats.total;
+                document.getElementById('stat-logins').innerText   = stats.logins;
+
+                // New critical event detected
                 if (isFirstLoad) { lastCriticalCount = stats.critical; isFirstLoad = false; }
-                else if (stats.critical > lastCriticalCount) { document.getElementById('brute-alert').classList.remove('hidden'); lastCriticalCount = stats.critical; term("NEW CRITICAL DETECTED"); }
+                else if (stats.critical > lastCriticalCount) {
+                    lastCriticalCount = stats.critical;
+                    showAlert("NEW CRITICAL ATTACK DETECTED — CHECK THREATS TAB");
+                    term("⚠ NEW CRITICAL EVENT LOGGED");
+                }
 
+                // Blocked IPs badge (also shown in header)
+                if (stats.blocked > 0) {
+                    const b = document.getElementById('blocked-badge');
+                    b.classList.remove('hidden');
+                    b.innerText = `${stats.blocked} IP${stats.blocked>1?'s':''} BLOCKED`;
+                }
+
+                // Security log
                 const filteredSec = currentSecFilter === 'all' ? sec : sec.filter(l => l.stat === 'Critical');
-                document.getElementById('log-list').innerHTML = filteredSec.slice(0, 15).map(l => `<div class="p-4 border-b border-border/20 font-mono"><div class="flex justify-between font-bold text-[14px]"><span>${l.ip}</span><span class="${l.stat === 'Critical' ? 'text-rose-500' : 'text-zinc-500'}">${l.stat.toUpperCase()}</span></div><span class="text-zinc-500 text-[11px] uppercase">${l.act}</span></div>`).join('');
-                
-                const filteredAuth = currentAuthFilter === 'all' ? auth : auth.filter(l => l.status === 'Failed');
-                document.getElementById('login-log-list').innerHTML = filteredAuth.slice(0, 15).map(l => `<div class="p-4 flex justify-between border-b border-border/20 font-mono"><div><p class="font-bold text-text-main text-[14px]">${l.username}</p><p class="text-zinc-500 text-[10px] font-mono">${l.ts}</p></div><span class="${l.status === 'Success' ? 'text-emerald-500' : 'text-rose-500'} font-black text-[11px] uppercase font-mono">${l.status}</span></div>`).join('');
+                document.getElementById('log-list').innerHTML = filteredSec.slice(0,15).map(l => `
+                    <div class="log-row">
+                        <div style="display:flex;justify-content:space-between;font-weight:700;font-size:13px;margin-bottom:2px">
+                            <span>${l.ip}</span>
+                            <span style="color:${l.stat==='Critical'?'var(--rose)':'var(--text-muted)'};font-size:10px;font-weight:800">${l.stat.toUpperCase()}</span>
+                        </div>
+                        <span style="color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:.04em">${l.act}</span>
+                    </div>`).join('');
 
+                // Auth log
+                const filteredAuth = currentAuthFilter === 'all' ? auth : auth.filter(l => l.status === 'Failed');
+                document.getElementById('login-log-list').innerHTML = filteredAuth.slice(0,15).map(l => `
+                    <div class="log-row" style="display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <p style="font-weight:700;font-size:13px;color:var(--text-main);margin:0 0 2px">${l.username}</p>
+                            <p style="color:var(--text-muted);font-size:10px;margin:0">${l.ts}${l.ip?' · '+l.ip:''}</p>
+                        </div>
+                        <span style="color:${l.status==='Success'?'var(--emerald)':'var(--rose)'};font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.08em">${l.status}</span>
+                    </div>`).join('');
+
+                // Archive / threat tables
                 const filteredArch = currentArchFilter === 'all' ? sec : sec.filter(l => l.stat === 'Critical');
-                document.getElementById('archive-count').innerText = `${filteredArch.length} RECORDS FOUND`;
-                document.getElementById('full-log-table').innerHTML = filteredArch.map(l => {
+                document.getElementById('archive-count').innerText = `${filteredArch.length} RECORDS`;
+
+                const archRows = filteredArch.map(l => {
                     const isCrit = l.stat === 'Critical';
-                    return `<tr class="hover:bg-bg-header/40 group font-mono">
-                        <td class="p-5 col-ts">${l.ts}</td>
-                        <td class="p-5 col-node text-accent opacity-70">NODE_01</td>
-                        <td class="p-5 col-ip font-bold">${l.ip}</td>
-                        <td class="p-5 col-type"><span class="type-badge">${l.act.split(' ')[0].toUpperCase()}</span></td>
-                        <td class="p-5 col-action text-zinc-500">${l.act}</td>
-                        <td class="p-5 col-stat text-center"><span class="px-2 py-1 rounded border ${isCrit ? 'border-rose-500/40 text-rose-500 bg-rose-500/5' : 'border-border text-zinc-500'} text-[9px] font-black uppercase">${l.stat}</span></td>
+                    return `<tr style="transition:background .15s" onmouseover="this.style.background='var(--accent-dim)'" onmouseout="this.style.background='transparent'">
+                        <td class="p-4 col-ts" style="font-size:12px;color:var(--text-muted)">${l.ts}</td>
+                        <td class="p-4 col-node" style="font-size:12px;color:var(--accent);opacity:.7;font-weight:700">NODE_01</td>
+                        <td class="p-4 col-ip" style="font-weight:700;font-size:13px">${l.ip}</td>
+                        <td class="p-4 col-type"><span class="type-badge">${l.act.split(' ')[0].toUpperCase()}</span></td>
+                        <td class="p-4 col-action" style="font-size:12px;color:var(--text-muted)">${l.act}</td>
+                        <td class="p-4 col-stat text-center"><span style="padding:2px 10px;border-radius:5px;font-size:9px;font-weight:800;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;border:1px solid ${isCrit?'rgba(248,81,73,.3)':'var(--border)'};color:${isCrit?'var(--rose)':'var(--text-muted)'};background:${isCrit?'rgba(248,81,73,.06)':'transparent'}">${l.stat}</span></td>
                     </tr>`;
                 }).join('');
+
+                const archBody = document.getElementById('full-log-table');
+                if (archBody) archBody.innerHTML = archRows;
+                const threatBody = document.getElementById('threat-log-table');
+                if (threatBody) threatBody.innerHTML = archRows;
+
             } catch(e) {}
         }
 
-        function term(m) { document.getElementById('terminal-out').innerText = `[LOG] ${m}`; }
-        function setTheme(mode) { document.querySelectorAll('#settings-drawer .filter-btn').forEach(b => b.classList.remove('active')); if (mode === 'light') { document.body.classList.add('light-theme'); document.getElementById('theme-light').classList.add('active'); } else if (mode === 'dark') { document.body.classList.remove('light-theme'); document.getElementById('theme-dark').classList.add('active'); } else { const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches; document.body.classList.toggle('light-theme', !isDark); document.getElementById('theme-system').classList.add('active'); } }
+        function term(m) {
+            document.getElementById('terminal-out').innerText = `[LOG] ${m}`;
+        }
 
+        // ─── CSV EXPORT ──────────────────────────────────────
+        function downloadLogs() {
+            const rows = [['Timestamp','IP','Action','Status']];
+            allSecLogs.forEach(l => rows.push([l.ts, l.ip, `"${l.act}"`, l.stat]));
+            const csv  = rows.map(r => r.join(',')).join('\n');
+            const link = document.createElement('a');
+            link.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+            link.download = `netad_logs_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+
+        // ─── THEME ──────────────────────────────────────────
+        function setTheme(mode) {
+            document.querySelectorAll('#settings-drawer .filter-btn').forEach(b => b.classList.remove('active'));
+            if (mode === 'light')  { document.body.classList.add('light-theme');   document.getElementById('theme-light').classList.add('active'); }
+            else if (mode === 'dark') { document.body.classList.remove('light-theme'); document.getElementById('theme-dark').classList.add('active'); }
+            else { document.body.classList.toggle('light-theme', !window.matchMedia('(prefers-color-scheme:dark)').matches); document.getElementById('theme-system').classList.add('active'); }
+            localStorage.setItem('netad_theme', mode);
+        }
+
+        // ─── PROVISION FORM ─────────────────────────────────
         document.getElementById('add-user-form').onsubmit = async (e) => {
             e.preventDefault();
-            const msg = document.getElementById('drawer-msg'), btn = document.getElementById('provision-btn'), user = document.getElementById('new-username').value, pass = document.getElementById('new-password').value;
+            const msg  = document.getElementById('drawer-msg');
+            const btn  = document.getElementById('provision-btn');
+            const user = document.getElementById('new-username').value;
+            const pass = document.getElementById('new-password').value;
             btn.innerText = "AUTHORIZING..."; btn.disabled = true;
             try {
-                const res = await fetch('/api/add_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: user, password: pass }) });
+                const res  = await fetch('/api/add_user', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username: user, password: pass}) });
                 const data = await res.json();
-                if(data.success) { 
-                    msg.style.color = "#3fb950"; msg.innerText = "ACCESS GRANTED"; 
-                    term(`NEW_USER: ${user.toUpperCase()}`); 
-                    setTimeout(() => { toggleDrawer(false); e.target.reset(); fetchUserList(); }, 1500); 
-                } else { msg.style.color = "#f85149"; msg.innerText = data.message || "PROVISION_FAILED"; }
-            } catch(err) { msg.style.color = "#f85149"; msg.innerText = "SYNC_FAILED"; } 
+                if (data.success) {
+                    msg.style.color = 'var(--emerald)'; msg.innerText = "ACCESS GRANTED";
+                    term(`NEW USER: ${user.toUpperCase()}`);
+                    setTimeout(() => { toggleDrawer(false); e.target.reset(); fetchUserList(); }, 1500);
+                } else { msg.style.color = 'var(--rose)'; msg.innerText = data.message || "PROVISION FAILED"; }
+            } catch(err) { msg.style.color = 'var(--rose)'; msg.innerText = "SYNC FAILED"; }
             finally { btn.innerText = "Authorize Session"; btn.disabled = false; }
         };
 
-        setInterval(refresh, 5000); refresh();
-        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleString('en-CA', {hour12:false}); }, 1000);
+        // ─── INIT ────────────────────────────────────────────
+        const savedTheme = localStorage.getItem('netad_theme');
+        if (savedTheme) setTheme(savedTheme);
+
+        setInterval(refresh, 5000);
+        setInterval(refreshThreats, 10000);
+        refresh();
+        refreshThreats();
+
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleString('en-CA', {hour12:false});
+        }, 1000);
+
         async function logout() { await fetch('/api/logout', {method:'POST'}); window.location.href='/'; }
     </script>
 </body>

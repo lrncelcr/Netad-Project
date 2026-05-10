@@ -1,477 +1,433 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Netad // Secure Access</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
     <style>
-
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
-
-        
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap');
 
         :root {
-
-            --bg-canvas: #010409; 
-
-            --bg-surface: rgba(13, 17, 23, 0.8);
-
-            --border: #30363d; 
-
-            --accent: #a78bfa; 
-
-            --text-main: #c9d1d9;
-
-            --radius: 12px;
-
+            --bg-canvas:  #010409;
+            --bg-surface: rgba(13, 17, 23, 0.85);
+            --border:     #30363d;
+            --accent:     #a78bfa;
+            --text-main:  #c9d1d9;
+            --text-muted: #8b949e;
+            --rose:       #f85149;
+            --emerald:    #3fb950;
+            --radius:     14px;
         }
 
+        * { box-sizing: border-box; }
 
-
-        body { 
-
-            background-color: var(--bg-canvas); 
-
+        body {
+            background-color: var(--bg-canvas);
             font-family: 'Inter', sans-serif;
-
-            display: flex; align-items: center; justify-content: center; height: 100vh;
-
-            margin: 0; overflow: hidden; position: relative;
-
+            display: flex; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; overflow: hidden; position: relative;
         }
 
-
-
-        /* ───── BACKGROUND ANIMATION: FLOATING DATA ───── */
-
-        .particle-container {
-
-            position: absolute; inset: 0; z-index: -1;
-
-            background: radial-gradient(circle at center, #11151c 0%, var(--bg-canvas) 100%);
-
-            overflow: hidden;
-
+        /* ─── BACKGROUND ─────────────────────────────── */
+        .scene {
+            position: absolute; inset: 0; z-index: 0; overflow: hidden;
+            background: radial-gradient(ellipse 80% 60% at 50% 40%, #111520 0%, var(--bg-canvas) 100%);
         }
 
-
-
-        .particle-container::before {
-
-            content: ""; position: absolute; inset: 0;
-
-            background-image: radial-gradient(var(--border) 0.5px, transparent 0.5px);
-
-            background-size: 32px 32px;
-
-            opacity: 0.4;
-
+        /* Dot grid */
+        .scene::before {
+            content: "";
+            position: absolute; inset: 0;
+            background-image: radial-gradient(rgba(167,139,250,.25) 1px, transparent 1px);
+            background-size: 36px 36px;
+            mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 100%);
         }
 
+        /* Horizontal scan lines */
+        .scene::after {
+            content: "";
+            position: absolute; inset: 0; pointer-events: none;
+            background: repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,.15) 3px, rgba(0,0,0,.15) 4px);
+            opacity: .6;
+        }
 
+        /* Corner accent glows */
+        .glow-tl {
+            position: absolute; top: -120px; left: -120px;
+            width: 500px; height: 500px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(167,139,250,.07) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .glow-br {
+            position: absolute; bottom: -120px; right: -120px;
+            width: 400px; height: 400px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(63,185,80,.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
 
+        /* Animated dots */
         .dot {
-
             position: absolute; width: 2px; height: 2px;
-
             background: var(--accent); border-radius: 50%;
-
-            opacity: 0;
-
-            animation: drift var(--d) linear infinite;
-
+            opacity: 0; animation: drift var(--d) linear infinite;
         }
-
-
-
         @keyframes drift {
-
-            0% { transform: translateY(105vh); opacity: 0; }
-
-            20% { opacity: 0.4; }
-
-            80% { opacity: 0.4; }
-
+            0%   { transform: translateY(105vh); opacity: 0; }
+            20%  { opacity: .35; }
+            80%  { opacity: .35; }
             100% { transform: translateY(-10vh); opacity: 0; }
-
         }
 
-
-
-        /* ───── GLASSMORPHISM LOGIN CARD ───── */
-
-        .utility-card {
-
+        /* ─── CARD ───────────────────────────────────── */
+        .auth-card {
+            position: relative; z-index: 10;
+            width: 100%; max-width: 380px;
             background: var(--bg-surface);
-
-            backdrop-filter: blur(20px);
-
-            -webkit-backdrop-filter: blur(20px);
-
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
             border: 1px solid var(--border);
-
-            width: 100%; max-width: 360px;
-
             border-radius: var(--radius);
-
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-
-            z-index: 10;
-
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,.03) inset,
+                0 24px 64px rgba(0,0,0,.6),
+                0 0 60px rgba(167,139,250,.05);
+            animation: fadeUp .6s ease both;
+        }
+        @keyframes fadeUp {
+            from { opacity:0; transform: translateY(20px); }
+            to   { opacity:1; transform: translateY(0); }
         }
 
-
-
-        .card-header { background: rgba(22, 27, 34, 0.4); border-bottom: 1px solid var(--border); padding: 32px 24px; text-align: center; }
-
-
-
-        /* ───── INPUT VISIBILITY FIX ───── */
-
-        input { 
-
-            background: rgba(1, 4, 9, 0.7) !important; 
-
-            border: 1px solid var(--border); 
-
-            color: var(--text-main) !important; /* Fixed: Text will now be visible */
-
-            font-family: 'JetBrains Mono', monospace; 
-
-            transition: all 0.2s; 
-
+        /* Accent shimmer on top edge */
+        .auth-card::before {
+            content: "";
+            position: absolute; top: 0; left: 20%; right: 20%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(167,139,250,.6), transparent);
+            border-radius: 2px;
         }
 
-        input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.1); }
-
-        input:disabled { opacity: 0.3; cursor: not-allowed; }
-
-
-
-        .btn-deploy { 
-
-            background: var(--accent); color: #000; font-weight: 800; font-size: 11px;
-
-            text-transform: uppercase; letter-spacing: 0.1em; transition: all 0.2s;
-
+        /* ─── CARD HEADER ────────────────────────────── */
+        .card-header {
+            background: rgba(22, 27, 34, 0.5);
+            border-bottom: 1px solid var(--border);
+            padding: 36px 28px 28px;
+            text-align: center;
+            border-radius: var(--radius) var(--radius) 0 0;
         }
 
-        .btn-deploy:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+        .logo-ring {
+            width: 52px; height: 52px;
+            background: rgba(167,139,250,.07);
+            border: 1px solid rgba(167,139,250,.2);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 18px;
+            box-shadow: 0 0 20px rgba(167,139,250,.15), inset 0 1px 0 rgba(255,255,255,.05);
+        }
 
-        .btn-deploy:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+        .brand-name {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800; font-size: 20px;
+            color: #fff; letter-spacing: -.01em;
+            margin: 0 0 8px;
+        }
 
-        
+        .status-pill {
+            display: inline-flex; align-items: center; gap: 7px;
+            background: rgba(63,185,80,.06);
+            border: 1px solid rgba(63,185,80,.15);
+            border-radius: 999px;
+            padding: 5px 14px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 9px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .1em;
+            color: var(--text-muted);
+            transition: all .4s;
+        }
+        .status-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--emerald);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%{opacity:1} 50%{opacity:.4} 100%{opacity:1} }
 
-        #attempt-bar { transition: width 0.5s ease; }
+        /* ─── CARD BODY ──────────────────────────────── */
+        .card-body { padding: 32px 28px; }
 
-        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        label {
+            display: block;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 9px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .1em;
+            color: var(--text-muted);
+            margin-bottom: 9px;
+        }
 
-        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } }
+        /* EXACT MATCH FOR YOUR UPLOADED IMAGE INPUTS */
+        input {
+            width: 100%;
+            background: #9ca3af !important; /* Solid light grey background */
+            border: none !important; /* No borders */
+            color: #111827 !important; /* Dark text for readability */
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 16px 18px !important; /* Much more space inside the box */
+            border-radius: 8px !important; /* Smooth rounded corners */
+            transition: box-shadow .2s, background .2s, transform .2s;
+            outline: none;
+        }
+        input::placeholder { color: #475569 !important; font-weight: 600; }
+        input:focus {
+            background: #cbd5e1 !important; /* Slightly lighter on focus */
+            box-shadow: 0 0 0 3px rgba(167,139,250,.4) !important; /* Purple glow */
+            transform: translateY(-1px);
+        }
+        input:disabled { opacity: .5; cursor: not-allowed; }
 
+        /* ─── ATTEMPT PROGRESS BAR ───────────────────── */
+        .bar-track {
+            width: 100%; height: 2px;
+            background: rgba(255,255,255,.06);
+            border-radius: 4px; overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        #attempt-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--amber, #d29922), var(--rose));
+            width: 0%; transition: width .5s ease;
+        }
+
+        /* ─── SUBMIT BUTTON ──────────────────────────── */
+        #submit-btn {
+            width: 100%;
+            background: var(--accent);
+            color: #ffffff !important; /* White text so it highlights */
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 700; font-size: 12px;
+            text-transform: uppercase; letter-spacing: .1em;
+            padding: 16px; /* Matched the bigger input sizes */
+            border-radius: 8px;
+            border: none; cursor: pointer;
+            transition: filter .2s, transform .15s, box-shadow .2s;
+            box-shadow: 0 4px 20px rgba(167,139,250,.25);
+        }
+        #submit-btn:hover:not(:disabled) {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 32px rgba(167,139,250,.35);
+        }
+        #submit-btn:active:not(:disabled) { transform: translateY(0); }
+        #submit-btn:disabled {
+            background: #21262d; color: #484f58 !important; cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* ─── ANIMATIONS ─────────────────────────────── */
+        .shake { animation: shake .4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%,90% { transform: translate3d(-2px,0,0); }
+            20%,80% { transform: translate3d(3px,0,0); }
+            30%,50%,70% { transform: translate3d(-5px,0,0); }
+            40%,60% { transform: translate3d(5px,0,0); }
+        }
+
+        /* ─── FOOTER ─────────────────────────────────── */
+        .card-footer {
+            text-align: center;
+            border-top: 1px solid var(--border);
+            padding: 16px 28px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 9px; color: var(--text-muted);
+            opacity: .5; letter-spacing: .06em;
+        }
     </style>
-
 </head>
-
 <body>
 
-
-
-    <div class="particle-container" id="particles"></div>
-
-
-
-    <div id="auth-box" class="utility-card">
-
-        <div class="card-header">
-
-            <div class="w-12 h-12 bg-black/40 border border-border rounded-xl flex items-center justify-center mx-auto mb-4">
-
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-
-            </div>
-
-            <h1 class="text-white text-lg font-bold tracking-tight">Netad Console</h1>
-
-            <div class="flex items-center justify-center gap-2 mt-1">
-
-                <span id="pulse-dot" class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-
-                <p id="status-text" class="text-[9px] font-mono text-zinc-500 uppercase tracking-widest">pipeline active</p>
-
-            </div>
-
-        </div>
-
-
-
-        <div class="p-8">
-
-            <form id="login-form" class="space-y-6">
-
-                <div>
-
-                    <label class="text-[10px] font-bold text-zinc-500 uppercase mb-2 block tracking-widest">Identity</label>
-
-                    <input type="text" id="username" class="w-full rounded-lg px-3 py-2.5 text-xs" placeholder="operator_id" required>
-
-                </div>
-
-                <div>
-
-                    <label class="text-[10px] font-bold text-zinc-500 uppercase mb-2 block tracking-widest">Security Key</label>
-
-                    <input type="password" id="password" class="w-full rounded-lg px-3 py-2.5 text-xs" placeholder="••••••••" required>
-
-                </div>
-
-
-
-                <div class="space-y-2">
-
-                    <div id="error-msg" class="text-[9px] text-rose-500 font-bold text-center min-h-[14px] uppercase font-mono tracking-tighter"></div>
-
-                    <div class="w-full bg-black h-1 rounded-full overflow-hidden border border-border">
-
-                        <div id="attempt-bar" class="bg-rose-500 h-full" style="width: 0%"></div>
-
-                    </div>
-
-                </div>
-
-
-
-                <button type="submit" id="submit-btn" class="btn-deploy w-full py-4 rounded-lg">Authorize Access</button>
-
-            </form>
-
-
-
-            <div id="admin-notice" class="hidden mt-6 pt-6 border-t border-border text-center">
-
-                <p id="cooldown-timer" class="text-[10px] text-rose-500 font-bold font-mono mb-2"></p>
-
-                <a href="mailto:admin@netad.com" class="text-[10px] text-accent font-bold uppercase hover:underline mt-2 block">Request Override</a>
-
-            </div>
-
-        </div>
-
+    <div class="scene">
+        <div class="glow-tl"></div>
+        <div class="glow-br"></div>
     </div>
 
+    <div id="auth-card" class="auth-card">
 
+        <div class="card-header">
+            <div class="logo-ring">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+            <p class="brand-name">Netad Console</p>
+            <div class="status-pill" id="status-pill">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-text">pipeline active</span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <form id="login-form" style="display:flex;flex-direction:column;gap:24px">
+
+                <div>
+                    <label>Identity</label>
+                    <input type="text" id="username" placeholder="Enter ID" required autocomplete="username">
+                </div>
+
+                <div>
+                    <label>Security Key</label>
+                    <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:6px">
+                    <div id="error-msg" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--rose);font-weight:700;text-align:center;min-height:14px;letter-spacing:.04em;text-transform:uppercase"></div>
+                    <div class="bar-track"><div id="attempt-bar"></div></div>
+                </div>
+
+                <button type="submit" id="submit-btn">Authorize Access</button>
+            </form>
+        </div>
+
+        <div id="admin-notice" class="hidden" style="padding:0 28px 24px;text-align:center">
+            <p id="cooldown-timer" style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--rose);font-weight:700;margin-bottom:10px"></p>
+            <a href="mailto:admin@netad.com" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent);font-weight:700;text-transform:uppercase;text-decoration:none;letter-spacing:.06em" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Request Override →</a>
+        </div>
+
+        <div class="card-footer">TLS 1.3 · AES-256 · SHA-256</div>
+    </div>
 
     <script>
-
-        // 1. Generate Floating Dots
-
-        const container = document.getElementById('particles');
-
-        for (let i = 0; i < 75; i++) {
-
-            const dot = document.createElement('div');
-
-            dot.className = 'dot';
-
+        // ─── FLOATING DOTS ───────────────────────────────────
+        const scene = document.querySelector('.scene');
+        for (let i = 0; i < 60; i++) {
+            const dot = document.createElement('div'); dot.className = 'dot';
             dot.style.left = `${Math.random() * 100}%`;
-
             dot.style.setProperty('--d', `${10 + Math.random() * 20}s`);
-
             dot.style.animationDelay = `${Math.random() * 20}s`;
-
-            dot.appendChild(document.createTextNode(''));
-
-            container.appendChild(dot);
-
+            scene.appendChild(dot);
         }
 
+        // ─── STATE ──────────────────────────────────────────
+        const form        = document.getElementById('login-form');
+        const card        = document.getElementById('auth-card');
+        const errEl       = document.getElementById('error-msg');
+        const btn         = document.getElementById('submit-btn');
+        const inputs      = document.querySelectorAll('input');
+        const adminNotice = document.getElementById('admin-notice');
+        const statusPill  = document.getElementById('status-pill');
+        const statusText  = document.getElementById('status-text');
+        const statusDot   = document.getElementById('status-dot');
+        const attemptBar  = document.getElementById('attempt-bar');
+        const timerText   = document.getElementById('cooldown-timer');
 
+        const MAX_ATTEMPTS      = 5;
+        const COOLDOWN_SECONDS  = 30;
 
-        // 2. Full Login Logic
-
-        const form = document.getElementById('login-form'), authBox = document.getElementById('auth-box'),
-
-              err = document.getElementById('error-msg'), btn = document.getElementById('submit-btn'),
-
-              inputs = document.querySelectorAll('input'), adminNotice = document.getElementById('admin-notice'),
-
-              statusText = document.getElementById('status-text'), pulseDot = document.getElementById('pulse-dot'),
-
-              attemptBar = document.getElementById('attempt-bar'), timerText = document.getElementById('cooldown-timer');
-
-
-
-        let attempts = parseInt(localStorage.getItem('netad_attempts')) || 0;
-
-        const MAX_ATTEMPTS = 5;
-
-        const COOLDOWN_SECONDS = 30;
-
-
+        let attempts = parseInt(localStorage.getItem('netad_attempts') || '0');
 
         window.onload = () => {
-
             attemptBar.style.width = `${(attempts / MAX_ATTEMPTS) * 100}%`;
-
             const lockoutTime = localStorage.getItem('netad_lockout_expiry');
-
-            if (lockoutTime && Date.now() < lockoutTime) {
-
-                startCooldown(Math.ceil((lockoutTime - Date.now()) / 1000));
-
+            if (lockoutTime && Date.now() < parseInt(lockoutTime)) {
+                startCooldown(Math.ceil((parseInt(lockoutTime) - Date.now()) / 1000));
             }
-
         };
 
-
-
+        // ─── SUBMIT ─────────────────────────────────────────
         form.addEventListener('submit', async (e) => {
-
             e.preventDefault();
-
             btn.innerText = "AUTHORIZING...";
-
-            btn.disabled = true;
-
-
+            btn.disabled  = true;
+            errEl.innerText = "";
 
             try {
-
-                const res = await fetch('/api/login', {
-
+                const res  = await fetch('/api/login', {
                     method: 'POST',
-
-                    headers: { 'Content-Type': 'application/json' },
-
-                    body: JSON.stringify({ username: document.getElementById('username').value, password: document.getElementById('password').value })
-
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        username: document.getElementById('username').value,
+                        password: document.getElementById('password').value
+                    })
                 });
-
                 const data = await res.json();
 
-
-
                 if (data.success) {
-
                     localStorage.removeItem('netad_attempts');
-
                     localStorage.removeItem('netad_lockout_expiry');
-
-                    window.location.href = "/";
-
-                } else {
-
-                    attempts++;
-
-                    localStorage.setItem('netad_attempts', attempts);
-
-                    authBox.classList.add('shake');
-
-                    setTimeout(() => authBox.classList.remove('shake'), 400);
-
-                    attemptBar.style.width = `${(attempts / MAX_ATTEMPTS) * 100}%`;
-
-
-
-                    if (attempts >= MAX_ATTEMPTS) {
-
-                        const expiry = Date.now() + (COOLDOWN_SECONDS * 1000);
-
-                        localStorage.setItem('netad_lockout_expiry', expiry);
-
-                        startCooldown(COOLDOWN_SECONDS);
-
-                    } else {
-
-                        err.innerText = "INVALID_CREDENTIALS";
-
-                        btn.innerText = "Authorize Access"; btn.disabled = false;
-
-                    }
-
+                    btn.innerText = "✓ ACCESS GRANTED";
+                    btn.style.background = 'var(--emerald)';
+                    setTimeout(() => { window.location.href = "/"; }, 600);
+                    return;
                 }
 
-            } catch (f) { err.innerText = "NETWORK_ERROR"; btn.disabled = false; }
+                // Server said blocked (429)
+                if (data.blocked || res.status === 429) {
+                    errEl.innerText = data.message || "IP BLOCKED BY SERVER";
+                    btn.innerText = "ACCESS DENIED"; btn.disabled = false;
+                    shakeCard();
+                    return;
+                }
 
+                // Normal failure
+                attempts++;
+                localStorage.setItem('netad_attempts', attempts);
+                shakeCard();
+                attemptBar.style.width = `${(attempts / MAX_ATTEMPTS) * 100}%`;
+                errEl.innerText = data.message || "INVALID_CREDENTIALS";
+
+                if (attempts >= MAX_ATTEMPTS) {
+                    const expiry = Date.now() + (COOLDOWN_SECONDS * 1000);
+                    localStorage.setItem('netad_lockout_expiry', expiry);
+                    startCooldown(COOLDOWN_SECONDS);
+                } else {
+                    btn.innerText = "Authorize Access"; btn.disabled = false;
+                }
+
+            } catch(f) {
+                errEl.innerText = "NETWORK_ERROR";
+                btn.innerText = "Authorize Access"; btn.disabled = false;
+            }
         });
 
+        function shakeCard() {
+            card.classList.add('shake');
+            setTimeout(() => card.classList.remove('shake'), 400);
+        }
 
-
+        // ─── COOLDOWN ────────────────────────────────────────
         function startCooldown(seconds) {
-
             inputs.forEach(i => i.disabled = true);
-
-            btn.disabled = true;
-
-            btn.innerText = "LOCKED";
-
+            btn.disabled = true; btn.innerText = "LOCKED";
             adminNotice.classList.remove('hidden');
 
-            statusText.innerText = "THREAT_DETECTED // LOCKOUT";
-
-            statusText.style.color = "#f85149";
-
-            pulseDot.classList.replace('bg-emerald-500', 'bg-rose-500');
-
-
+            // Red status pill
+            statusText.innerText  = "THREAT_DETECTED // LOCKOUT";
+            statusDot.style.background = 'var(--rose)';
+            statusDot.style.animation  = 'none';
+            statusPill.style.background = 'rgba(248,81,73,.06)';
+            statusPill.style.borderColor = 'rgba(248,81,73,.2)';
 
             let timeLeft = seconds;
-
             const timer = setInterval(() => {
-
                 timerText.innerText = `RETRY_IN_${timeLeft}S`;
-
                 timeLeft--;
-
-                if (timeLeft < 0) {
-
-                    clearInterval(timer);
-
-                    resetAuth();
-
-                }
-
+                if (timeLeft < 0) { clearInterval(timer); resetAuth(); }
             }, 1000);
-
         }
-
-
 
         function resetAuth() {
-
             localStorage.removeItem('netad_attempts');
-
             localStorage.removeItem('netad_lockout_expiry');
-
             attempts = 0;
-
             inputs.forEach(i => i.disabled = false);
-
-            btn.disabled = false;
-
-            btn.innerText = "Authorize Access";
-
+            btn.disabled = false; btn.innerText = "Authorize Access";
             attemptBar.style.width = "0%";
-
             adminNotice.classList.add('hidden');
-
-            err.innerText = "";
-
+            errEl.innerText = "";
             statusText.innerText = "pipeline active";
-
-            statusText.style.color = "#8b949e";
-
-            pulseDot.classList.replace('bg-rose-500', 'bg-emerald-500');
-
+            statusDot.style.background = 'var(--emerald)';
+            statusDot.style.animation  = 'pulse 2s infinite';
+            statusPill.style.background = 'rgba(63,185,80,.06)';
+            statusPill.style.borderColor = 'rgba(63,185,80,.15)';
         }
-
     </script>
-
 </body>
-
 </html>
