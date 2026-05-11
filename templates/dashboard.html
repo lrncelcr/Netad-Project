@@ -705,18 +705,24 @@
             try {
                 const res   = await fetch('/api/get_users');
                 const users = await res.json();
-                document.getElementById('user-list-table').innerHTML = users.map(u => `
+                document.getElementById('user-list-table').innerHTML = users.map(u => {
+                    // Make it green if online, grey if offline
+                    const statusColor = u.status === 'Online' ? 'var(--emerald)' : 'var(--text-muted)';
+                    
+                    return `
                     <tr style="transition:background .15s;font-family:'IBM Plex Mono',monospace" onmouseover="this.style.background='var(--accent-dim)'" onmouseout="this.style.background='transparent'">
                         <td class="p-5 font-bold" style="color:var(--text-main)">${u.username}</td>
                         <td class="p-5" style="color:var(--text-muted);font-size:9px;text-transform:uppercase;font-weight:800">Level 1</td>
-                        <td class="p-5" style="color:var(--text-muted);font-size:12px">${new Date().toLocaleString('en-CA',{hour12:false})}</td>
-                        <td class="p-5" style="color:var(--emerald);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">Active</td>
+                        <td class="p-5" style="color:var(--text-muted);font-size:12px">${u.last_active}</td>
+                        <td class="p-5" style="color:${statusColor};font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em">${u.status}</td>
                         <td class="p-5 text-right"><button onclick="revokeUser('${u.username}')" style="color:var(--rose);opacity:.5;font-size:10px;font-weight:800;text-transform:uppercase;background:none;border:none;cursor:pointer;transition:opacity .2s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.5'">Revoke</button></td>
-                    </tr>`).join('');
+                    </tr>`;
+                }).join('');
             } catch(e) {
                 document.getElementById('user-list-table').innerHTML = '<tr><td colspan="5" style="padding:48px;text-align:center;color:var(--text-muted);font-size:12px;font-weight:800;text-transform:uppercase;opacity:.4;font-family:IBM Plex Mono,monospace">Syncing database...</td></tr>';
             }
         }
+    
 
         // ─── THREAT PANEL ────────────────────────────────────
         async function refreshThreats() {

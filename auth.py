@@ -14,8 +14,27 @@ def hash_password(password: str, salt: str = None):
     h = hashlib.sha256((password + salt).encode()).hexdigest()
     return h, salt
 
+import os
+import psycopg2
+from dotenv import load_dotenv
+
+load_dotenv()
+
 def db_connect():
-    return psycopg2.connect(DB_URL)
+    # 1. Try to get the cloud database URL from Railway
+    db_url = os.getenv("DATABASE_URL")
+    
+    if db_url:
+        # If we are on Railway, connect using the cloud URL
+        return psycopg2.connect(db_url)
+    else:
+        # 2. If we are testing on your local laptop, use local settings
+        return psycopg2.connect(
+            host="localhost",
+            database="netad_db", # (Change these to your local credentials)
+            user="postgres",
+            password="your_local_password" 
+        )
 
 # ───── NEW: FUNCTION TO ADD USERS ─────
 def create_user(username, password, role='Operator'):

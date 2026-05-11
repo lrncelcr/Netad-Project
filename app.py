@@ -213,12 +213,47 @@ def api_add_user():
 @login_required
 def api_get_users():
     try:
+        current_user = session.get('username')
         conn = db_connect()
         cur = conn.cursor()
-        cur.execute("SELECT username, role FROM users ORDER BY username ASC")
+        
+        # Pull users, last login time, AND ask the DB if that login was within the last 1 hour
+        cur.execute("""
+            SELECT u.username, u.role, 
+                   (SELECT MAX(timestamp) FROM login_logs WHERE username = u.username AND status = 'Success') as last_login,
+                   (SELECT MAX(timestamp) >= NOW() - INTERVAL '1 hour' FROM login_logs WHERE username = u.username AND status = 'Success') as is_recent
+            FROM users u ORDER BY u.username ASC
+        """)
         rows = cur.fetchall()
         cur.close(); conn.close()
-        return jsonify([{'username': r[0], 'role': r[1]} for r in rows])
+
+        user_list = []
+        for r in rows:
+            uname = r[0]
+            role = r[1]
+            last_login = r[2]
+            is_recent = r[3] # This will be True if they logged in less than an hour ago
+
+            # Format the timestamp
+            if last_login:
+                last_active_str = last_login.strftime('%Y-%m-%d, %H:%M:%S')
+            else:
+                last_active_str = "Never"
+
+            # They are ONLINE if they are the current viewer, OR if they logged in recently
+            if uname == current_user or is_recent:
+                status = "Online"
+            else:
+                status = "Offline"
+
+            user_list.append({
+                'username': uname, 
+                'role': role,
+                'last_active': last_active_str,
+                'status': status
+            })
+            
+        return jsonify(user_list)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
