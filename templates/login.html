@@ -21,11 +21,17 @@
 
         * { box-sizing: border-box; }
 
+        /* FIXED: Removed the stray "<" symbol before "body" */
         body {
             background-color: var(--bg-canvas);
             font-family: 'Inter', sans-serif;
-            display: flex; align-items: center; justify-content: center;
-            height: 100vh; margin: 0; overflow: hidden; position: relative;
+            display: flex; 
+            align-items: center;       /* Centers vertically */
+            justify-content: center;   /* Centers horizontally */
+            height: 100vh; 
+            margin: 0; 
+            overflow: hidden; 
+            position: relative;
         }
 
         /* ─── BACKGROUND ─────────────────────────────── */
@@ -164,24 +170,23 @@
             margin-bottom: 9px;
         }
 
-        /* EXACT MATCH FOR YOUR UPLOADED IMAGE INPUTS */
         input {
             width: 100%;
-            background: #9ca3af !important; /* Solid light grey background */
-            border: none !important; /* No borders */
-            color: #111827 !important; /* Dark text for readability */
+            background: #9ca3af !important; 
+            border: none !important; 
+            color: #111827 !important; 
             font-family: 'IBM Plex Mono', monospace;
             font-size: 14px;
             font-weight: 600;
-            padding: 16px 18px !important; /* Much more space inside the box */
-            border-radius: 8px !important; /* Smooth rounded corners */
+            padding: 16px 18px !important; 
+            border-radius: 8px !important; 
             transition: box-shadow .2s, background .2s, transform .2s;
             outline: none;
         }
         input::placeholder { color: #475569 !important; font-weight: 600; }
         input:focus {
-            background: #cbd5e1 !important; /* Slightly lighter on focus */
-            box-shadow: 0 0 0 3px rgba(167,139,250,.4) !important; /* Purple glow */
+            background: #cbd5e1 !important; 
+            box-shadow: 0 0 0 3px rgba(167,139,250,.4) !important; 
             transform: translateY(-1px);
         }
         input:disabled { opacity: .5; cursor: not-allowed; }
@@ -203,11 +208,11 @@
         #submit-btn {
             width: 100%;
             background: var(--accent);
-            color: #ffffff !important; /* White text so it highlights */
+            color: #ffffff !important; 
             font-family: 'IBM Plex Mono', monospace;
             font-weight: 700; font-size: 12px;
             text-transform: uppercase; letter-spacing: .1em;
-            padding: 16px; /* Matched the bigger input sizes */
+            padding: 16px; 
             border-radius: 8px;
             border: none; cursor: pointer;
             transition: filter .2s, transform .15s, box-shadow .2s;
@@ -318,20 +323,18 @@
         const timerText   = document.getElementById('cooldown-timer');
 
         const MAX_ATTEMPTS      = 5;
-        const COOLDOWN_SECONDS  = 300; // FIXED: Matches the server's 5-minute block
+        const COOLDOWN_SECONDS  = 300; // 5-minute block
 
         let attempts = parseInt(localStorage.getItem('netad_attempts') || '0');
 
-        // FIXED: Check for an active block the moment the page loads/reloads
         window.onload = () => {
             attemptBar.style.width = `${(attempts / MAX_ATTEMPTS) * 100}%`;
             const lockoutTime = localStorage.getItem('netad_lockout_expiry');
             
-            // If there is a saved lockout time and it hasn't expired yet, resume the timer
             if (lockoutTime && Date.now() < parseInt(lockoutTime)) {
                 startCooldown(Math.ceil((parseInt(lockoutTime) - Date.now()) / 1000));
             } else {
-                localStorage.removeItem('netad_lockout_expiry'); // Clean up old blocks
+                localStorage.removeItem('netad_lockout_expiry');
             }
         };
 
@@ -362,7 +365,6 @@
                     return;
                 }
 
-                // FIXED: If the Server says we are blocked, or we hit 5 attempts locally
                 if (data.blocked || res.status === 429 || attempts >= (MAX_ATTEMPTS - 1)) {
                     attempts = MAX_ATTEMPTS;
                     localStorage.setItem('netad_attempts', attempts);
@@ -371,14 +373,12 @@
                     
                     errEl.innerText = data.message || "IP BLOCKED BY SERVER";
                     
-                    // Save the exact 5-minute expiration time into local storage so it survives reloads
                     const expiry = Date.now() + (COOLDOWN_SECONDS * 1000);
                     localStorage.setItem('netad_lockout_expiry', expiry);
                     startCooldown(COOLDOWN_SECONDS);
                     return;
                 }
 
-                // Normal failure (1 to 4 attempts)
                 attempts++;
                 localStorage.setItem('netad_attempts', attempts);
                 shakeCard();
@@ -404,7 +404,6 @@
             btn.disabled = true; btn.innerText = "LOCKED";
             adminNotice.classList.remove('hidden');
 
-            // Red status pill
             statusText.innerText  = "THREAT_DETECTED // LOCKOUT";
             statusDot.style.background = 'var(--rose)';
             statusDot.style.animation  = 'none';
@@ -413,14 +412,12 @@
 
             let timeLeft = seconds;
             
-            // Clear any old timers just in case
             if (window.activeTimer) clearInterval(window.activeTimer);
             
             window.activeTimer = setInterval(() => {
                 let m = Math.floor(timeLeft / 60);
                 let s = timeLeft % 60;
                 
-                // Formats it cleanly like 4M 59S
                 timerText.innerText = `RETRY_IN_${m}M_${s < 10 ? '0'+s : s}S`;
                 timeLeft--;
                 
@@ -435,132 +432,7 @@
             localStorage.removeItem('netad_attempts');
             localStorage.removeItem('netad_lockout_expiry');
             attempts = 0;
-            inputs.forEach(i => { i.disabled = false; i.value = ""; }); // Clear the fields
-            btn.disabled = false; btn.innerText = "Authorize Access";
-            attemptBar.style.width = "0%";
-            adminNotice.classList.add('hidden');
-            errEl.innerText = "";
-            statusText.innerText = "pipeline active";
-            statusDot.style.background = 'var(--emerald)';
-            statusDot.style.animation  = 'pulse 2s infinite';
-            statusPill.style.background = 'rgba(63,185,80,.06)';
-            statusPill.style.borderColor = 'rgba(63,185,80,.15)';
-        }
-    </script>
-
-        // ─── STATE ──────────────────────────────────────────
-        const form        = document.getElementById('login-form');
-        const card        = document.getElementById('auth-card');
-        const errEl       = document.getElementById('error-msg');
-        const btn         = document.getElementById('submit-btn');
-        const inputs      = document.querySelectorAll('input');
-        const adminNotice = document.getElementById('admin-notice');
-        const statusPill  = document.getElementById('status-pill');
-        const statusText  = document.getElementById('status-text');
-        const statusDot   = document.getElementById('status-dot');
-        const attemptBar  = document.getElementById('attempt-bar');
-        const timerText   = document.getElementById('cooldown-timer');
-
-        const MAX_ATTEMPTS      = 5;
-        const COOLDOWN_SECONDS  = 30;
-
-        let attempts = parseInt(localStorage.getItem('netad_attempts') || '0');
-
-        window.onload = () => {
-            attemptBar.style.width = `${(attempts / MAX_ATTEMPTS) * 100}%`;
-            const lockoutTime = localStorage.getItem('netad_lockout_expiry');
-            if (lockoutTime && Date.now() < parseInt(lockoutTime)) {
-                startCooldown(Math.ceil((parseInt(lockoutTime) - Date.now()) / 1000));
-            }
-        };
-
-        // ─── SUBMIT ─────────────────────────────────────────
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            btn.innerText = "AUTHORIZING...";
-            btn.disabled  = true;
-            errEl.innerText = "";
-
-            try {
-                const res  = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        username: document.getElementById('username').value,
-                        password: document.getElementById('password').value
-                    })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    localStorage.removeItem('netad_attempts');
-                    localStorage.removeItem('netad_lockout_expiry');
-                    btn.innerText = "✓ ACCESS GRANTED";
-                    btn.style.background = 'var(--emerald)';
-                    setTimeout(() => { window.location.href = "/"; }, 600);
-                    return;
-                }
-
-                // Server said blocked (429)
-                if (data.blocked || res.status === 429) {
-                    errEl.innerText = data.message || "IP BLOCKED BY SERVER";
-                    btn.innerText = "ACCESS DENIED"; btn.disabled = false;
-                    shakeCard();
-                    return;
-                }
-
-                // Normal failure
-                attempts++;
-                localStorage.setItem('netad_attempts', attempts);
-                shakeCard();
-                attemptBar.style.width = `${(attempts / MAX_ATTEMPTS) * 100}%`;
-                errEl.innerText = data.message || "INVALID_CREDENTIALS";
-
-                if (attempts >= MAX_ATTEMPTS) {
-                    const expiry = Date.now() + (COOLDOWN_SECONDS * 1000);
-                    localStorage.setItem('netad_lockout_expiry', expiry);
-                    startCooldown(COOLDOWN_SECONDS);
-                } else {
-                    btn.innerText = "Authorize Access"; btn.disabled = false;
-                }
-
-            } catch(f) {
-                errEl.innerText = "NETWORK_ERROR";
-                btn.innerText = "Authorize Access"; btn.disabled = false;
-            }
-        });
-
-        function shakeCard() {
-            card.classList.add('shake');
-            setTimeout(() => card.classList.remove('shake'), 400);
-        }
-
-        // ─── COOLDOWN ────────────────────────────────────────
-        function startCooldown(seconds) {
-            inputs.forEach(i => i.disabled = true);
-            btn.disabled = true; btn.innerText = "LOCKED";
-            adminNotice.classList.remove('hidden');
-
-            // Red status pill
-            statusText.innerText  = "THREAT_DETECTED // LOCKOUT";
-            statusDot.style.background = 'var(--rose)';
-            statusDot.style.animation  = 'none';
-            statusPill.style.background = 'rgba(248,81,73,.06)';
-            statusPill.style.borderColor = 'rgba(248,81,73,.2)';
-
-            let timeLeft = seconds;
-            const timer = setInterval(() => {
-                timerText.innerText = `RETRY_IN_${timeLeft}S`;
-                timeLeft--;
-                if (timeLeft < 0) { clearInterval(timer); resetAuth(); }
-            }, 1000);
-        }
-
-        function resetAuth() {
-            localStorage.removeItem('netad_attempts');
-            localStorage.removeItem('netad_lockout_expiry');
-            attempts = 0;
-            inputs.forEach(i => i.disabled = false);
+            inputs.forEach(i => { i.disabled = false; i.value = ""; });
             btn.disabled = false; btn.innerText = "Authorize Access";
             attemptBar.style.width = "0%";
             adminNotice.classList.add('hidden');
