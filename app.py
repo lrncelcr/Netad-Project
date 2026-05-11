@@ -11,19 +11,16 @@ from dotenv import load_dotenv
 from auth import verify_login, log_login_event, db_connect, create_user
 from detector import start_detector
 
-# ─── NEW: Import hardened security layer ──────────────────
+# Import hardened security layer
 from security import (
     block_if_locked,
     record_failed_login,
     clear_failed_logins,
-    get_blocked_ips,
-    get_recent_threats,
     register_threat,
     sanitise_username,
     sanitise_text,
     get_real_ip,
     add_security_headers,
-    unblock_ip,
 )
 
 load_dotenv()
@@ -35,18 +32,16 @@ app.secret_key = os.getenv("SECRET_KEY")
 if not app.secret_key or len(app.secret_key) < 32:
     raise RuntimeError(
         "SECRET_KEY env var is missing or too short (must be ≥32 chars). "
-        "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
     )
 
 app.config.update(
-    SESSION_COOKIE_HTTPONLY=True,       # JS cannot read the session cookie
-    SESSION_COOKIE_SAMESITE="Lax",     # Mitigates CSRF on modern browsers
-    SESSION_COOKIE_SECURE=os.getenv("FLASK_ENV") != "development",  # HTTPS-only in prod
-    PERMANENT_SESSION_LIFETIME=3600,   # 1-hour session max
-    MAX_CONTENT_LENGTH=1 * 1024 * 1024,  # 1 MB request body limit
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.getenv("FLASK_ENV") != "development",
+    PERMANENT_SESSION_LIFETIME=3600,
+    MAX_CONTENT_LENGTH=1 * 1024 * 1024,
 )
 
-# ─── ATTACH SECURITY HEADERS TO EVERY RESPONSE ────────────
 app.after_request(add_security_headers)
 
 ALERTS_DIR = "security_alerts"
@@ -58,7 +53,6 @@ cap = cv2.VideoCapture(CAMERA_SRC)
 if not cap.isOpened():
     print("⚠️  Warning: Camera source not found. (Normal on Railway)")
 
-
 def gen_frames():
     while True:
         if cap is None or not cap.isOpened():
@@ -69,7 +63,6 @@ def gen_frames():
         _, buf = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 75])
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buf.tobytes() + b'\r\n')
-
 
 # ─── AUTH DECORATOR ───────────────────────────────────────
 def login_required(f):
@@ -88,7 +81,6 @@ def index():
         return render_template('login.html')
     return render_template('dashboard.html')
 
-
 @app.route('/video_feed')
 @login_required
 def video_feed():
@@ -97,21 +89,18 @@ def video_feed():
 
 # ─── API: AUTHENTICATION ──────────────────────────────────
 @app.route('/api/login', methods=['POST'])
-@block_if_locked          # ← server-side IP block check BEFORE any processing
+@block_if_locked
 def api_login():
     ip_addr = get_real_ip()
 
-    # Reject oversized bodies early
     if request.content_length and request.content_length > 4096:
         return jsonify({'success': False, 'message': 'Request too large'}), 413
 
     body = request.get_json(force=True, silent=True) or {}
 
-    # Sanitise inputs — reject if username contains illegal chars
     username = sanitise_username(body.get('username') or '')
     if username is None:
-        return jsonify({'success': False,
-                        'message': 'Invalid username format.'}), 400
+        return jsonify({'success': False, 'message': 'Invalid username format.'}), 400
     password = (body.get('password') or '').strip()[:128]
 
     success, result = verify_login(username, password)
@@ -119,7 +108,7 @@ def api_login():
     if success:
         clear_failed_logins(ip_addr)
         log_login_event(username, 'Success', ip_address=ip_addr)
-        session.clear()                        # Prevent session fixation
+        session.clear()
         session['username'] = username
         session['role'] = result
         session.permanent = True
@@ -127,20 +116,15 @@ def api_login():
 
     else:
         log_login_event(username, 'Failed', result, ip_address=ip_addr)
-
-        # Server-side rate limiter
         rate_result = record_failed_login(ip_addr)
 
-        # Also write a Critical audit log when brute-force threshold hit
         if rate_result['blocked']:
             try:
                 conn = db_connect()
                 cur = conn.cursor()
                 cur.execute(
                     "INSERT INTO audit_logs (ip_address, action, status) VALUES (%s, %s, %s)",
-                    (ip_addr,
-                     f"Brute Force: IP blocked after {rate_result['attempts']} failed logins for '{username}'",
-                     "Critical")
+                    (ip_addr, f"Brute Force: IP blocked after {rate_result['attempts']} failed logins for '{username}'", "Critical")
                 )
                 conn.commit()
                 cur.close(); conn.close()
@@ -152,7 +136,6 @@ def api_login():
                 'blocked': True
             }), 429
 
-        # Still within rate window — also check DB-level brute force (≥5 in 10 min)
         try:
             conn = db_connect()
             cur = conn.cursor()
@@ -166,9 +149,7 @@ def api_login():
             if fail_count >= 5:
                 cur.execute(
                     "INSERT INTO audit_logs (ip_address, action, status) VALUES (%s, %s, %s)",
-                    (ip_addr,
-                     f"Brute Force: 5+ failed logins for '{username}' in last 10 min",
-                     "Critical")
+                    (ip_addr, f"Brute Force: 5+ failed logins for '{username}' in last 10 min", "Critical")
                 )
                 conn.commit()
                 register_threat(ip_addr, f"Brute force detected ({fail_count} attempts)")
@@ -182,7 +163,6 @@ def api_login():
             'attempts_remaining': rate_result['remaining']
         })
 
-
 @app.route('/api/logout', methods=['POST'])
 def api_logout():
     session.clear()
@@ -194,20 +174,16 @@ def api_logout():
 @login_required
 def api_add_user():
     body = request.get_json(force=True, silent=True) or {}
-
     new_username = sanitise_username(body.get('username') or '')
     if new_username is None:
-        return jsonify({'success': False,
-                        'message': 'Invalid username (a-z, 0-9, _ - . only)'}), 400
+        return jsonify({'success': False, 'message': 'Invalid username (a-z, 0-9, _ - . only)'}), 400
 
     new_password = (body.get('password') or '').strip()
     if len(new_password) < 8:
-        return jsonify({'success': False,
-                        'message': 'Password must be at least 8 characters'}), 400
+        return jsonify({'success': False, 'message': 'Password must be at least 8 characters'}), 400
 
     success, message = create_user(new_username, new_password)
     return jsonify({'success': success, 'message': message})
-
 
 @app.route('/api/get_users')
 @login_required
@@ -217,7 +193,6 @@ def api_get_users():
         conn = db_connect()
         cur = conn.cursor()
         
-        # Pull users, last login time, AND ask the DB if that login was within the last 1 hour
         cur.execute("""
             SELECT u.username, u.role, 
                    (SELECT MAX(timestamp) FROM login_logs WHERE username = u.username AND status = 'Success') as last_login,
@@ -232,31 +207,25 @@ def api_get_users():
             uname = r[0]
             role = r[1]
             last_login = r[2]
-            is_recent = r[3] # This will be True if they logged in less than an hour ago
+            is_recent = r[3]
 
-            # Format the timestamp
             if last_login:
                 last_active_str = last_login.strftime('%Y-%m-%d, %H:%M:%S')
             else:
                 last_active_str = "Never"
 
-            # They are ONLINE if they are the current viewer, OR if they logged in recently
             if uname == current_user or is_recent:
                 status = "Online"
             else:
                 status = "Offline"
 
             user_list.append({
-                'username': uname, 
-                'role': role,
-                'last_active': last_active_str,
-                'status': status
+                'username': uname, 'role': role, 'last_active': last_active_str, 'status': status
             })
             
         return jsonify(user_list)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/api/revoke_user', methods=['POST'])
 @login_required
@@ -267,8 +236,7 @@ def api_revoke_user():
     if not target_user:
         return jsonify({'success': False, 'message': 'Invalid username'}), 400
     if target_user == session.get('username'):
-        return jsonify({'success': False,
-                        'message': 'Safety: Cannot revoke your own access'}), 400
+        return jsonify({'success': False, 'message': 'Safety: Cannot revoke your own access'}), 400
     try:
         conn = db_connect()
         cur = conn.cursor()
@@ -280,36 +248,89 @@ def api_revoke_user():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-# ─── API: SECURITY MANAGEMENT (new endpoints) ─────────────
-
+# ─── API: SECURITY MANAGEMENT ─────────────────────────────
 @app.route('/api/threats')
 @login_required
 def api_threats():
-    """
-    Returns the last 20 real-time threat events from the in-memory registry.
-    Used by the dashboard to show live attack alerts without waiting for
-    the 5-second polling cycle.
-    """
-    return jsonify(get_recent_threats(20))
-
+    try:
+        conn = db_connect()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT ip_address, username, timestamp 
+            FROM login_logs 
+            WHERE status = 'Failed' 
+            ORDER BY timestamp DESC 
+            LIMIT 15
+        """)
+        rows = cur.fetchall()
+        cur.close(); conn.close()
+        
+        threats = []
+        for r in rows:
+            ip = r[0] if r[0] else "UNKNOWN_IP"
+            username = r[1]
+            ts = r[2].strftime('%H:%M:%S | %Y-%m-%d') if r[2] else "Unknown"
+            threats.append({
+                'ip': ip, 'severity': 'critical', 'reason': f'BRUTE FORCE ATTEMPT // ID: {username}', 'ts': ts
+            })
+            
+        return jsonify(threats)
+    except Exception as e:
+        print("Threat API Error:", e)
+        return jsonify([])
 
 @app.route('/api/blocked_ips')
 @login_required
 def api_blocked_ips():
-    """Returns currently blocked IPs with seconds remaining."""
-    return jsonify(get_blocked_ips())
-
+    try:
+        conn = db_connect()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT ip_address, 
+                   EXTRACT(EPOCH FROM (NOW() - MAX(timestamp))) as seconds_ago
+            FROM login_logs 
+            WHERE status = 'Failed' AND timestamp >= NOW() - INTERVAL '5 minutes'
+            GROUP BY ip_address
+            HAVING COUNT(*) >= 5
+        """)
+        rows = cur.fetchall()
+        cur.close(); conn.close()
+        
+        blocked_dict = {}
+        for r in rows:
+            ip = r[0] if r[0] else "UNKNOWN_IP"
+            seconds_ago = r[1]
+            time_left = 300 - int(seconds_ago)
+            if time_left > 0:
+                blocked_dict[ip] = time_left
+                
+        return jsonify(blocked_dict)
+    except Exception as e:
+        print("Blocked IPs Error:", e)
+        return jsonify({})
 
 @app.route('/api/unblock_ip', methods=['POST'])
 @login_required
 def api_unblock_ip():
-    """Admin endpoint to manually release a blocked IP."""
-    body = request.get_json(force=True, silent=True) or {}
-    ip = sanitise_text(body.get('ip') or '', max_len=45)
-    if not ip:
-        return jsonify({'success': False, 'message': 'IP required'}), 400
-    unblock_ip(ip)
-    return jsonify({'success': True, 'message': f'{ip} unblocked'})
+    try:
+        data = request.get_json()
+        ip_to_unblock = data.get('ip')
+        
+        if ip_to_unblock:
+            conn = db_connect()
+            cur = conn.cursor()
+            cur.execute("""
+                UPDATE login_logs 
+                SET status = 'Unblocked' 
+                WHERE ip_address = %s AND status = 'Failed'
+            """, (ip_to_unblock,))
+            conn.commit()
+            cur.close(); conn.close()
+            
+        return jsonify({"success": True})
+    except Exception as e:
+        print("Unblock Error:", e)
+        return jsonify({"success": False, "error": str(e)})
 
 
 # ─── API: DATA & LOGS ─────────────────────────────────────
@@ -333,7 +354,6 @@ def api_logs():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/login_logs')
 @login_required
 def api_login_logs():
@@ -354,7 +374,6 @@ def api_login_logs():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/stats')
 @login_required
 def api_stats():
@@ -369,10 +388,20 @@ def api_stats():
         logins = cur.fetchone()[0]
         cur.execute("SELECT COUNT(*) FROM login_logs WHERE status = 'Failed'")
         failed = cur.fetchone()[0]
+        
+        # Count blocked IPs dynamically from the database
+        cur.execute("""
+            SELECT COUNT(DISTINCT ip_address) 
+            FROM login_logs 
+            WHERE status = 'Failed' AND timestamp >= NOW() - INTERVAL '5 minutes'
+            GROUP BY ip_address HAVING COUNT(*) >= 5
+        """)
+        blocked_row = cur.fetchone()
+        blocked_count = blocked_row[0] if blocked_row else 0
+        
         cur.close(); conn.close()
         snaps = len([f for f in os.listdir(ALERTS_DIR) if f.endswith('.jpg')])
-        # Also surface current block count
-        blocked_count = len(get_blocked_ips())
+        
         return jsonify({
             'critical': critical, 'total': total,
             'logins': logins, 'failed': failed,
@@ -386,103 +415,5 @@ def api_stats():
 detector_thread = threading.Thread(target=start_detector, daemon=True)
 detector_thread.start()
 
-# ─── RUN SERVER ───────────────────────────────────────────@app.route('/api/threats')
-@login_required
-def api_threats():
-    try:
-        conn = db_connect()
-        cur = conn.cursor()
-        
-        # Grab the 15 most recent failed login attempts from the database
-        cur.execute("""
-            SELECT ip_address, username, timestamp 
-            FROM login_logs 
-            WHERE status = 'Failed' 
-            ORDER BY timestamp DESC 
-            LIMIT 15
-        """)
-        rows = cur.fetchall()
-        cur.close(); conn.close()
-        
-        threats = []
-        for r in rows:
-            ip = r[0] if r[0] else "UNKNOWN_IP"
-            username = r[1]
-            ts = r[2].strftime('%H:%M:%S | %Y-%m-%d') if r[2] else "Unknown"
-            
-            threats.append({
-                'ip': ip,
-                'severity': 'critical',
-                'reason': f'BRUTE FORCE ATTEMPT // ID: {username}',
-                'ts': ts
-            })
-            
-        return jsonify(threats)
-    except Exception as e:
-        print("Threat API Error:", e)
-        return jsonify([])
-
-@app.route('/api/blocked_ips')
-@login_required
-@app.route('/api/blocked_ips')
-@login_required
-def api_blocked_ips():
-    try:
-        conn = db_connect()
-        cur = conn.cursor()
-        
-        # Ask Postgres: Who has 5 or more 'Failed' attempts in the last 5 minutes?
-        # We also ask Postgres to calculate exactly how many seconds ago their last fail was.
-        cur.execute("""
-            SELECT ip_address, 
-                   EXTRACT(EPOCH FROM (NOW() - MAX(timestamp))) as seconds_ago
-            FROM login_logs 
-            WHERE status = 'Failed' AND timestamp >= NOW() - INTERVAL '5 minutes'
-            GROUP BY ip_address
-            HAVING COUNT(*) >= 5
-        """)
-        rows = cur.fetchall()
-        cur.close(); conn.close()
-        
-        blocked_dict = {}
-        for r in rows:
-            ip = r[0] if r[0] else "UNKNOWN_IP"
-            seconds_ago = r[1]
-            
-            # The penalty is 5 minutes (300 seconds). Calculate time remaining.
-            time_left = 300 - int(seconds_ago)
-            
-            if time_left > 0:
-                blocked_dict[ip] = time_left # Sends { "192.168.1.5": 245 } to the frontend
-                
-        return jsonify(blocked_dict)
-    except Exception as e:
-        print("Blocked IPs Error:", e)
-        return jsonify({})
-
-@app.route('/api/unblock_ip', methods=['POST'])
-@login_required
-def api_unblock_ip():
-    try:
-        data = request.get_json()
-        ip_to_unblock = data.get('ip')
-        
-        if ip_to_unblock:
-            conn = db_connect()
-            cur = conn.cursor()
-            
-            # "Forgive" the user by changing their recent 'Failed' logs to 'Unblocked'
-            # Because they no longer have 5 'Failed' logs, the server will let them back in!
-            cur.execute("""
-                UPDATE login_logs 
-                SET status = 'Unblocked' 
-                WHERE ip_address = %s AND status = 'Failed'
-            """, (ip_to_unblock,))
-            
-            conn.commit()
-            cur.close(); conn.close()
-            
-        return jsonify({"success": True})
-    except Exception as e:
-        print("Unblock Error:", e)
-        return jsonify({"success": False, "error": str(e)})
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080, debug=True)
