@@ -386,7 +386,103 @@ def api_stats():
 detector_thread = threading.Thread(target=start_detector, daemon=True)
 detector_thread.start()
 
-# ─── RUN SERVER ───────────────────────────────────────────
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+# ─── RUN SERVER ───────────────────────────────────────────@app.route('/api/threats')
+@login_required
+def api_threats():
+    try:
+        conn = db_connect()
+        cur = conn.cursor()
+        
+        # Grab the 15 most recent failed login attempts from the database
+        cur.execute("""
+            SELECT ip_address, username, timestamp 
+            FROM login_logs 
+            WHERE status = 'Failed' 
+            ORDER BY timestamp DESC 
+            LIMIT 15
+        """)
+        rows = cur.fetchall()
+        cur.close(); conn.close()
+        
+        threats = []
+        for r in rows:
+            ip = r[0] if r[0] else "UNKNOWN_IP"
+            username = r[1]
+            ts = r[2].strftime('%H:%M:%S | %Y-%m-%d') if r[2] else "Unknown"
+            
+            threats.append({
+                'ip': ip,
+                'severity': 'critical',
+                'reason': f'BRUTE FORCE ATTEMPT // ID: {username}',
+                'ts': ts
+            })
+            
+        return jsonify(threats)
+    except Exception as e:
+        print("Threat API Error:", e)
+        return jsonify([])
+
+@app.route('/api/blocked_ips')
+@login_required
+@app.route('/api/blocked_ips')
+@login_required
+def api_blocked_ips():
+    try:
+        conn = db_connect()
+        cur = conn.cursor()
+        
+        # Ask Postgres: Who has 5 or more 'Failed' attempts in the last 5 minutes?
+        # We also ask Postgres to calculate exactly how many seconds ago their last fail was.
+        cur.execute("""
+            SELECT ip_address, 
+                   EXTRACT(EPOCH FROM (NOW() - MAX(timestamp))) as seconds_ago
+            FROM login_logs 
+            WHERE status = 'Failed' AND timestamp >= NOW() - INTERVAL '5 minutes'
+            GROUP BY ip_address
+            HAVING COUNT(*) >= 5
+        """)
+        rows = cur.fetchall()
+        cur.close(); conn.close()
+        
+        blocked_dict = {}
+        for r in rows:
+            ip = r[0] if r[0] else "UNKNOWN_IP"
+            seconds_ago = r[1]
+            
+            # The penalty is 5 minutes (300 seconds). Calculate time remaining.
+            time_left = 300 - int(seconds_ago)
+            
+            if time_left > 0:
+                blocked_dict[ip] = time_left # Sends { "192.168.1.5": 245 } to the frontend
+                
+        return jsonify(blocked_dict)
+    except Exception as e:
+        print("Blocked IPs Error:", e)
+        return jsonify({})
+
+@app.route('/api/unblock_ip', methods=['POST'])
+@login_required
+def api_unblock_ip():
+    try:
+        data = request.get_json()
+        ip_to_unblock = data.get('ip')
+        
+        if ip_to_unblock:
+            conn = db_connect()
+            cur = conn.cursor()
+            
+            # "Forgive" the user by changing their recent 'Failed' logs to 'Unblocked'
+            # Because they no longer have 5 'Failed' logs, the server will let them back in!
+            cur.execute("""
+                UPDATE login_logs 
+                SET status = 'Unblocked' 
+                WHERE ip_address = %s AND status = 'Failed'
+            """, (ip_to_unblock,))
+            
+            conn.commit()
+            cur.close(); conn.close()
+            
+        return jsonify({"success": True})
+    except Exception as e:
+        print("Unblock Error:", e)
+        return jsonify({"success": False, "error": str(e)})

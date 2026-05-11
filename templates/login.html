@@ -426,7 +426,7 @@
                 let m = Math.floor(timeLeft / 60);
                 let s = timeLeft % 60;
                 
-                timerText.innerText = `RETRY_IN_${m}M_${s < 10 ? '0'+s : s}S`;
+                timerText.innerText = `RETRY IN ${m}M ${s < 10 ? '0'+s : s}S`;
                 timeLeft--;
                 
                 if (timeLeft < 0) { 
