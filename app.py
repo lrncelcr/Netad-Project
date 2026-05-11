@@ -21,6 +21,7 @@ from security import (
     sanitise_text,
     get_real_ip,
     add_security_headers,
+    get_recent_threats,  # <--- ADD THIS BACK
 )
 
 load_dotenv()
@@ -248,33 +249,13 @@ def api_revoke_user():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-# ─── API: SECURITY MANAGEMENT ─────────────────────────────
 @app.route('/api/threats')
 @login_required
 def api_threats():
     try:
-        conn = db_connect()
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT ip_address, username, timestamp 
-            FROM login_logs 
-            WHERE status = 'Failed' 
-            ORDER BY timestamp DESC 
-            LIMIT 15
-        """)
-        rows = cur.fetchall()
-        cur.close(); conn.close()
-        
-        threats = []
-        for r in rows:
-            ip = r[0] if r[0] else "UNKNOWN_IP"
-            username = r[1]
-            ts = r[2].strftime('%H:%M:%S | %Y-%m-%d') if r[2] else "Unknown"
-            threats.append({
-                'ip': ip, 'severity': 'critical', 'reason': f'BRUTE FORCE ATTEMPT // ID: {username}', 'ts': ts
-            })
-            
-        return jsonify(threats)
+        # This properly asks your security.py file for real threats,
+        # instead of blindly reporting every failed typo!
+        return jsonify(get_recent_threats(20))
     except Exception as e:
         print("Threat API Error:", e)
         return jsonify([])
