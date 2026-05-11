@@ -276,7 +276,6 @@
                     <label>Security Key</label>
                     <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
                 </div>
-
                 <div style="display:flex;flex-direction:column;gap:6px">
                     <div id="error-msg" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--rose);font-weight:700;text-align:center;min-height:14px;letter-spacing:.04em;text-transform:uppercase"></div>
                     <div class="bar-track"><div id="attempt-bar"></div></div>
@@ -304,6 +303,150 @@
             dot.style.animationDelay = `${Math.random() * 20}s`;
             scene.appendChild(dot);
         }
+
+        // ─── STATE ──────────────────────────────────────────
+        const form        = document.getElementById('login-form');
+        const card        = document.getElementById('auth-card');
+        const errEl       = document.getElementById('error-msg');
+        const btn         = document.getElementById('submit-btn');
+        const inputs      = document.querySelectorAll('input');
+        const adminNotice = document.getElementById('admin-notice');
+        const statusPill  = document.getElementById('status-pill');
+        const statusText  = document.getElementById('status-text');
+        const statusDot   = document.getElementById('status-dot');
+        const attemptBar  = document.getElementById('attempt-bar');
+        const timerText   = document.getElementById('cooldown-timer');
+
+        const MAX_ATTEMPTS      = 5;
+        const COOLDOWN_SECONDS  = 300; // FIXED: Matches the server's 5-minute block
+
+        let attempts = parseInt(localStorage.getItem('netad_attempts') || '0');
+
+        // FIXED: Check for an active block the moment the page loads/reloads
+        window.onload = () => {
+            attemptBar.style.width = `${(attempts / MAX_ATTEMPTS) * 100}%`;
+            const lockoutTime = localStorage.getItem('netad_lockout_expiry');
+            
+            // If there is a saved lockout time and it hasn't expired yet, resume the timer
+            if (lockoutTime && Date.now() < parseInt(lockoutTime)) {
+                startCooldown(Math.ceil((parseInt(lockoutTime) - Date.now()) / 1000));
+            } else {
+                localStorage.removeItem('netad_lockout_expiry'); // Clean up old blocks
+            }
+        };
+
+        // ─── SUBMIT ─────────────────────────────────────────
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            btn.innerText = "AUTHORIZING...";
+            btn.disabled  = true;
+            errEl.innerText = "";
+
+            try {
+                const res  = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        username: document.getElementById('username').value,
+                        password: document.getElementById('password').value
+                    })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.removeItem('netad_attempts');
+                    localStorage.removeItem('netad_lockout_expiry');
+                    btn.innerText = "✓ ACCESS GRANTED";
+                    btn.style.background = 'var(--emerald)';
+                    setTimeout(() => { window.location.href = "/"; }, 600);
+                    return;
+                }
+
+                // FIXED: If the Server says we are blocked, or we hit 5 attempts locally
+                if (data.blocked || res.status === 429 || attempts >= (MAX_ATTEMPTS - 1)) {
+                    attempts = MAX_ATTEMPTS;
+                    localStorage.setItem('netad_attempts', attempts);
+                    attemptBar.style.width = "100%";
+                    shakeCard();
+                    
+                    errEl.innerText = data.message || "IP BLOCKED BY SERVER";
+                    
+                    // Save the exact 5-minute expiration time into local storage so it survives reloads
+                    const expiry = Date.now() + (COOLDOWN_SECONDS * 1000);
+                    localStorage.setItem('netad_lockout_expiry', expiry);
+                    startCooldown(COOLDOWN_SECONDS);
+                    return;
+                }
+
+                // Normal failure (1 to 4 attempts)
+                attempts++;
+                localStorage.setItem('netad_attempts', attempts);
+                shakeCard();
+                attemptBar.style.width = `${(attempts / MAX_ATTEMPTS) * 100}%`;
+                errEl.innerText = data.message || "INVALID_CREDENTIALS";
+                btn.innerText = "Authorize Access"; 
+                btn.disabled = false;
+
+            } catch(f) {
+                errEl.innerText = "NETWORK_ERROR";
+                btn.innerText = "Authorize Access"; btn.disabled = false;
+            }
+        });
+
+        function shakeCard() {
+            card.classList.add('shake');
+            setTimeout(() => card.classList.remove('shake'), 400);
+        }
+
+        // ─── COOLDOWN ────────────────────────────────────────
+        function startCooldown(seconds) {
+            inputs.forEach(i => i.disabled = true);
+            btn.disabled = true; btn.innerText = "LOCKED";
+            adminNotice.classList.remove('hidden');
+
+            // Red status pill
+            statusText.innerText  = "THREAT_DETECTED // LOCKOUT";
+            statusDot.style.background = 'var(--rose)';
+            statusDot.style.animation  = 'none';
+            statusPill.style.background = 'rgba(248,81,73,.06)';
+            statusPill.style.borderColor = 'rgba(248,81,73,.2)';
+
+            let timeLeft = seconds;
+            
+            // Clear any old timers just in case
+            if (window.activeTimer) clearInterval(window.activeTimer);
+            
+            window.activeTimer = setInterval(() => {
+                let m = Math.floor(timeLeft / 60);
+                let s = timeLeft % 60;
+                
+                // Formats it cleanly like 4M 59S
+                timerText.innerText = `RETRY_IN_${m}M_${s < 10 ? '0'+s : s}S`;
+                timeLeft--;
+                
+                if (timeLeft < 0) { 
+                    clearInterval(window.activeTimer); 
+                    resetAuth(); 
+                }
+            }, 1000);
+        }
+
+        function resetAuth() {
+            localStorage.removeItem('netad_attempts');
+            localStorage.removeItem('netad_lockout_expiry');
+            attempts = 0;
+            inputs.forEach(i => { i.disabled = false; i.value = ""; }); // Clear the fields
+            btn.disabled = false; btn.innerText = "Authorize Access";
+            attemptBar.style.width = "0%";
+            adminNotice.classList.add('hidden');
+            errEl.innerText = "";
+            statusText.innerText = "pipeline active";
+            statusDot.style.background = 'var(--emerald)';
+            statusDot.style.animation  = 'pulse 2s infinite';
+            statusPill.style.background = 'rgba(63,185,80,.06)';
+            statusPill.style.borderColor = 'rgba(63,185,80,.15)';
+        }
+    </script>
 
         // ─── STATE ──────────────────────────────────────────
         const form        = document.getElementById('login-form');
