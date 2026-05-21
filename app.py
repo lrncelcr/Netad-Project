@@ -21,7 +21,7 @@ from security import (
     sanitise_text,
     get_real_ip,
     add_security_headers,
-    get_recent_threats,  # <--- ADD THIS BACK
+    get_recent_threats,
 )
 
 load_dotenv()
@@ -65,12 +65,28 @@ def gen_frames():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + buf.tobytes() + b'\r\n')
 
-# ─── AUTH DECORATOR ───────────────────────────────────────
+# ─── AUTH DECORATORS ──────────────────────────────────────
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if not session.get('username'):
             return jsonify({'error': 'Unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('username'):
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        # Case-insensitive role comparison with an 'admin' username fail-safe
+        user_role = str(session.get('role') or '').lower().strip()
+        user_name = str(session.get('username') or '').lower().strip()
+        
+        if user_role != 'admin' and user_name != 'admin':
+            return jsonify({'error': 'Forbidden: admin access required'}), 403
+            
         return f(*args, **kwargs)
     return decorated
 
@@ -81,6 +97,14 @@ def index():
     if not session.get('username'):
         return render_template('login.html')
     return render_template('dashboard.html')
+
+@app.route('/api/me')
+@login_required
+def api_me():
+    return jsonify({
+        'username': session.get('username'),
+        'role': session.get('role')
+    })
 
 @app.route('/video_feed')
 @login_required
@@ -170,9 +194,9 @@ def api_logout():
     return jsonify({'success': True})
 
 
-# ─── API: USER MANAGEMENT ─────────────────────────────────
+# ─── API: USER MANAGEMENT (Locked down to Admins) ─────────
 @app.route('/api/add_user', methods=['POST'])
-@login_required
+@admin_required
 def api_add_user():
     body = request.get_json(force=True, silent=True) or {}
     new_username = sanitise_username(body.get('username') or '')
@@ -187,7 +211,7 @@ def api_add_user():
     return jsonify({'success': success, 'message': message})
 
 @app.route('/api/get_users')
-@login_required
+@admin_required
 def api_get_users():
     try:
         current_user = session.get('username')
@@ -229,7 +253,7 @@ def api_get_users():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/revoke_user', methods=['POST'])
-@login_required
+@admin_required
 def api_revoke_user():
     body = request.get_json(force=True, silent=True) or {}
     target_user = sanitise_username(body.get('username') or '')
@@ -249,19 +273,18 @@ def api_revoke_user():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+# ─── API: THREAT TRACKING (Locked down to Admins) ──────────
 @app.route('/api/threats')
-@login_required
+@admin_required
 def api_threats():
     try:
-        # This properly asks your security.py file for real threats,
-        # instead of blindly reporting every failed typo!
         return jsonify(get_recent_threats(20))
     except Exception as e:
         print("Threat API Error:", e)
         return jsonify([])
 
 @app.route('/api/blocked_ips')
-@login_required
+@admin_required
 def api_blocked_ips():
     try:
         conn = db_connect()
@@ -291,7 +314,7 @@ def api_blocked_ips():
         return jsonify({})
 
 @app.route('/api/unblock_ip', methods=['POST'])
-@login_required
+@admin_required
 def api_unblock_ip():
     try:
         data = request.get_json()
@@ -314,9 +337,9 @@ def api_unblock_ip():
         return jsonify({"success": False, "error": str(e)})
 
 
-# ─── API: DATA & LOGS ─────────────────────────────────────
+# ─── API: DATA & LOGS (Locked down to Admins) ──────────────
 @app.route('/api/logs')
-@login_required
+@admin_required
 def api_logs():
     try:
         conn = db_connect()
@@ -336,7 +359,7 @@ def api_logs():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/login_logs')
-@login_required
+@admin_required
 def api_login_logs():
     try:
         conn = db_connect()
@@ -356,7 +379,7 @@ def api_login_logs():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/stats')
-@login_required
+@admin_required
 def api_stats():
     try:
         conn = db_connect()
@@ -370,7 +393,6 @@ def api_stats():
         cur.execute("SELECT COUNT(*) FROM login_logs WHERE status = 'Failed'")
         failed = cur.fetchone()[0]
         
-        # Count blocked IPs dynamically from the database
         cur.execute("""
             SELECT COUNT(DISTINCT ip_address) 
             FROM login_logs 
