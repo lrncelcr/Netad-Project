@@ -1,9 +1,11 @@
 # Netad – Web-Based CCTV Security & Network Monitoring System
 
 ## System Screenshots & Diagram
-- **[Network Architecture Diagram](./images/network_diagram.png)**
-- **[Live Dashboard & CCTV Feed](./images/dashboard.png)**
-- **[Security Logs & Login Screen](./images/login.png)**
+![Network Architecture Diagram](./images/network_diagram.png)
+
+![Live Dashboard & CCTV Feed](./images/dashboard.png)
+
+![Security Logs & Login Screen](./images/login.png)
 
 ---
 
