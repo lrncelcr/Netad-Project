@@ -1,11 +1,11 @@
+import os
 import psycopg2
 import hashlib
 import secrets
-import os
 from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
-DB_URL = os.getenv("DATABASE_URL")
 MAX_FAILED_ATTEMPTS = 5
 
 def hash_password(password: str, salt: str = None):
@@ -13,12 +13,6 @@ def hash_password(password: str, salt: str = None):
         salt = secrets.token_hex(16)
     h = hashlib.sha256((password + salt).encode()).hexdigest()
     return h, salt
-
-import os
-import psycopg2
-from dotenv import load_dotenv
-
-load_dotenv()
 
 def db_connect():
     # 1. Try to get the cloud database URL from Railway
@@ -36,7 +30,7 @@ def db_connect():
             password="your_local_password" 
         )
 
-# ───── NEW: FUNCTION TO ADD USERS ─────
+# ───── FUNCTION TO ADD USERS ─────
 def create_user(username, password, role='Operator'):
     """Hashes the password and saves a new operator to the database."""
     password_hash, salt = hash_password(password)

@@ -190,6 +190,12 @@ def api_login():
 
 @app.route('/api/logout', methods=['POST'])
 def api_logout():
+    username = session.get('username')
+    if username:
+        ip_addr = get_real_ip()
+        # Log the logout action into the database before clearing the session!
+        log_login_event(username, 'Logout', ip_addr)
+    
     session.clear()
     return jsonify({'success': True})
 
@@ -208,7 +214,21 @@ def api_add_user():
         return jsonify({'success': False, 'message': 'Password must be at least 8 characters'}), 400
 
     success, message = create_user(new_username, new_password)
+    
+    # FIXED: Added logic correctly inside the function
+    if success:
+        ip_addr = get_real_ip()
+        conn = db_connect()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO audit_logs (ip_address, action, status) VALUES (%s, %s, %s)",
+            (ip_addr, f"Admin '{session.get('username')}' provisioned new user '{new_username}'", "Info")
+        )
+        conn.commit()
+        cur.close(); conn.close()
+        
     return jsonify({'success': success, 'message': message})
+
 
 @app.route('/api/get_users')
 @admin_required
@@ -252,6 +272,7 @@ def api_get_users():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 @app.route('/api/revoke_user', methods=['POST'])
 @admin_required
 def api_revoke_user():
@@ -266,6 +287,10 @@ def api_revoke_user():
         conn = db_connect()
         cur = conn.cursor()
         cur.execute("DELETE FROM users WHERE username = %s", (target_user,))
+        cur.execute(
+            "INSERT INTO audit_logs (ip_address, action, status) VALUES (%s, %s, %s)",
+            (get_real_ip(), f"Admin '{session.get('username')}' revoked access for '{target_user}'", "Warning")
+        )
         conn.commit()
         cur.close(); conn.close()
         return jsonify({'success': True})
@@ -323,11 +348,19 @@ def api_unblock_ip():
         if ip_to_unblock:
             conn = db_connect()
             cur = conn.cursor()
+            
+            # FIXED: Separated the queries correctly
             cur.execute("""
                 UPDATE login_logs 
                 SET status = 'Unblocked' 
                 WHERE ip_address = %s AND status = 'Failed'
             """, (ip_to_unblock,))
+            
+            cur.execute(
+                "INSERT INTO audit_logs (ip_address, action, status) VALUES (%s, %s, %s)",
+                (get_real_ip(), f"Admin '{session.get('username')}' manually unblocked IP '{ip_to_unblock}'", "Info")
+            )
+            
             conn.commit()
             cur.close(); conn.close()
             
