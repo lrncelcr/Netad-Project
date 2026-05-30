@@ -1,13 +1,13 @@
 # Netad – Web-Based CCTV Security & Network Monitoring System
 
-## 📸 System Screenshots & Diagram
+## System Screenshots & Diagram
 - **[Network Architecture Diagram](./images/network_diagram.png)**
 - **[Live Dashboard & CCTV Feed](./images/dashboard.png)**
 - **[Security Logs & Login Screen](./images/login.png)**
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 netad/
@@ -25,7 +25,7 @@ netad/
 
 ---
 
-## ⚙️ Setup Steps
+## Setup Steps
 
 ### 1. Install dependencies
 ```bash
@@ -53,13 +53,13 @@ Open your browser and navigate to `http://localhost:8080`.
 
 ---
 
-## 🛡️ Security & Authentication System
+## Security & Authentication System
 - **Password Hashing:** Accounts stored securely using SHA-256 + cryptographic salting.
 - **Brute-Force Defense:** IPs are temporarily blocked after **5 failed attempts**.
 - **Audit Trail:** Complete logging of Login/Logout timestamps, IP addresses, and Admin actions.
 - **Role-Based Access Control (RBAC):** UI features restrict dynamically based on Admin vs. Operator roles.
 
-## 🎥 Physical Edge Camera Configuration
+## Physical Edge Camera Configuration
 To switch between testing and production hardware, edit the `CAMERA_SRC` in `app.py`:
 ```python
 CAMERA_SRC = 0                                        # Local USB Webcam testing
