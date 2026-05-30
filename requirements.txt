@@ -5,4 +5,4 @@ scapy
 opencv-python-headless
 gunicorn
 Pillow
-customtkinter
+customtkinter 
