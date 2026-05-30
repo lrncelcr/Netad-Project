@@ -1,77 +1,67 @@
-# Netad – CCTV Security System
+# Netad – Web-Based CCTV Security & Network Monitoring System
 
-## Project Structure
+## 📸 System Screenshots & Diagram
+- **[Network Architecture Diagram](./images/network_diagram.png)**
+- **[Live Dashboard & CCTV Feed](./images/dashboard.png)**
+- **[Security Logs & Login Screen](./images/login.png)**
 
-```
+---
+
+## 📁 Project Structure
+
+```text
 netad/
-├── .env                ← Database URL (keep private)
+├── .env                ← Supabase/Neon Database URL & Secrets (Keep private)
 ├── requirements.txt    ← Python dependencies
-├── db_setup.sql        ← Run ONCE on your Railway DB
-├── create_admin.py     ← Run ONCE to create login accounts
-├── auth.py             ← Authentication helpers (imported by main.py)
-├── main.py             ← Main GUI: Login + Dashboard
-├── detector.py         ← Network intrusion monitor (run separately)
-└── security_alerts/    ← Auto-created, stores JPEG snapshots
+├── app.py              ← Main Flask Web Server & API Routes
+├── auth.py             ← Authentication, Session & Hashing Logic
+├── security.py         ← RBAC, Rate-Limiting, & SQLi Defense Layer
+├── detector.py         ← Network intrusion monitor (Runs on background thread)
+├── templates/          
+│   ├── dashboard.html  ← Frontend UI (CCTV Feed & Audit Logs)
+│   └── login.html      ← Secure Authentication Interface
+└── security_alerts/    ← Auto-created, stores threat JPEG snapshots
 ```
 
 ---
 
-## Setup Steps
+## ⚙️ Setup Steps
 
 ### 1. Install dependencies
-```
+```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure your .env
-```
-DATABASE_URL=postgresql://user:pass@host:port/dbname
-```
-
-### 3. Create database tables
-Copy `db_setup.sql` into Railway's SQL console and run it.
-
-### 4. Create your admin account
-```
-python create_admin.py
+### 2. Configure your Environment Variables
+Create a `.env` file in the root directory:
+```ini
+DATABASE_URL=postgresql://user:pass@host:port/dbname  # Use Supabase/Neon URL
+SECRET_KEY=your_super_secret_flask_key_here
+CCTV_URL=rtsp://192.168.1.10:554/stream1              # Or 0 for Local Webcam
 ```
 
-### 5. Run the dashboard
-```
-python main.py
+### 3. Initialize the Database
+Connect to your Cloud PostgreSQL provider (Neon/Supabase) and ensure your `users`, `login_logs`, and `audit_logs` tables are created. 
+
+### 4. Run the Edge Node Server (Admin privileges required)
+```bash
+python app.py
 ```
 
-### 6. Run the intrusion detector (separate terminal, as admin)
-```
-# Windows (run as Administrator):
-python detector.py
-
-# Linux/Mac:
-sudo python detector.py
-```
+### 5. Access the Dashboard
+Open your browser and navigate to `http://localhost:8080`.
 
 ---
 
-## Login System
-- Accounts stored in `users` table with SHA-256 + salt hashing
-- Account locked after **5 failed attempts**
-- All login attempts logged to `login_logs` table
-- Use `create_admin.py` to create or reset accounts
+## 🛡️ Security & Authentication System
+- **Password Hashing:** Accounts stored securely using SHA-256 + cryptographic salting.
+- **Brute-Force Defense:** IPs are temporarily blocked after **5 failed attempts**.
+- **Audit Trail:** Complete logging of Login/Logout timestamps, IP addresses, and Admin actions.
+- **Role-Based Access Control (RBAC):** UI features restrict dynamically based on Admin vs. Operator roles.
 
-## Camera Source
-Edit `CAMERA_SRC` in `main.py`:
+## 🎥 Physical Edge Camera Configuration
+To switch between testing and production hardware, edit the `CAMERA_SRC` in `app.py`:
 ```python
-CAMERA_SRC = 0                                  # Webcam
-CAMERA_SRC = "rtsp://192.168.1.10:554/stream1"  # IP Camera
+CAMERA_SRC = 0                                        # Local USB Webcam testing
+CAMERA_SRC = os.getenv("CCTV_URL")                    # Production PoE IP Camera
 ```
-
-## Detection Types (detector.py)
-| Attack              | Detection Method             | Status   |
-|---------------------|------------------------------|----------|
-| Ping probe          | ICMP echo request            | Alert    |
-| ICMP flood          | 10+ pings in 10 seconds      | Critical |
-| Port scan (SYN)     | 5+ distinct SYN ports        | Critical |
-| XMAS scan           | FIN+PSH+URG flag combo       | Critical |
-| FIN / NULL scan     | FIN-only or 0-flag TCP       | Alert    |
-| UDP port probe      | UDP to camera IP             | Alert    |
-| RST flood           | RST to camera service ports  | Alert    |
