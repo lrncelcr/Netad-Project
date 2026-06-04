@@ -46,7 +46,15 @@ app.config.update(
 app.after_request(add_security_headers)
 
 ALERTS_DIR = "security_alerts"
-CAMERA_SRC = 0
+# ─── SMART CAMERA CONFIGURATION ───────────────────────────
+# Grab the URL from the .env file
+env_camera = os.getenv("CCTV_URL")
+
+# If there is a valid link, use it. Otherwise, default to local webcam (0).
+if env_camera and env_camera.strip() != "" and env_camera.strip() != "0":
+    CAMERA_SRC = env_camera
+else:
+    CAMERA_SRC = 0
 os.makedirs(ALERTS_DIR, exist_ok=True)
 
 # ─── CAMERA FAIL-SAFE ─────────────────────────────────────
