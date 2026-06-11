@@ -72,14 +72,9 @@ os.makedirs(
 env_camera = os.getenv("CCTV_URL", "").strip()
 
 
-if (
-    env_camera
-    and env_camera.strip()
-    and not os.getenv("RAILWAY_ENVIRONMENT_NAME")
-):
+if env_camera and env_camera.strip():
     CAMERA_SRC = env_camera
     print(f"Using CCTV: {CAMERA_SRC}")
-
 else:
     CAMERA_SRC = None
     print("Camera disabled")
