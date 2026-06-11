@@ -29,7 +29,6 @@ from security import (
 
 load_dotenv()
 
-
 app = Flask(__name__)
 
 
@@ -44,16 +43,10 @@ if not app.secret_key or len(app.secret_key) < 32:
 
 
 app.config.update(
-
     SESSION_COOKIE_HTTPONLY=True,
-
     SESSION_COOKIE_SAMESITE="Lax",
-
-    SESSION_COOKIE_SECURE=
-        os.getenv("FLASK_ENV") == "production",
-
+    SESSION_COOKIE_SECURE=os.getenv("FLASK_ENV") == "production",
     PERMANENT_SESSION_LIFETIME=3600,
-
     MAX_CONTENT_LENGTH=1024 * 1024
 )
 
@@ -66,21 +59,15 @@ app.after_request(add_security_headers)
 
 ALERTS_DIR = "security_alerts"
 
-os.makedirs(
-    ALERTS_DIR,
-    exist_ok=True
-)
+os.makedirs(ALERTS_DIR, exist_ok=True)
 
 
 env_camera = os.getenv("CCTV_URL")
 
 
-if env_camera and env_camera.strip() != "":
-
+if env_camera and env_camera.strip():
     CAMERA_SRC = env_camera
-
 else:
-
     CAMERA_SRC = 0
 
 
@@ -89,10 +76,7 @@ cap = cv2.VideoCapture(CAMERA_SRC)
 
 
 if not cap.isOpened():
-
-    print(
-        "Camera source not found"
-    )
+    print("Camera source not found")
 
 
 
@@ -124,10 +108,8 @@ def gen_frames():
         yield (
             b"--frame\r\n"
             b"Content-Type: image/jpeg\r\n\r\n"
-            +
-            buffer.tobytes()
-            +
-            b"\r\n"
+            + buffer.tobytes()
+            + b"\r\n"
         )
 
 
@@ -135,20 +117,18 @@ def gen_frames():
 
 # ─── AUTH DECORATORS ──────────────────────
 
-
 def login_required(f):
 
     @wraps(f)
-
     def decorated(*args, **kwargs):
 
         if not session.get("username"):
 
             return jsonify(
                 {
-                    "error":"Unauthorized"
+                    "error": "Unauthorized"
                 }
-            ),401
+            ), 401
 
 
         return f(*args, **kwargs)
@@ -159,31 +139,27 @@ def login_required(f):
 
 
 
-
 def admin_required(f):
 
     @wraps(f)
-
     def decorated(*args, **kwargs):
-
 
         if not session.get("username"):
 
             return jsonify(
                 {
-                    "error":"Unauthorized"
+                    "error": "Unauthorized"
                 }
-            ),401
-
+            ), 401
 
 
         role = str(
-            session.get("role","")
+            session.get("role", "")
         ).lower()
 
 
         username = str(
-            session.get("username","")
+            session.get("username", "")
         ).lower()
 
 
@@ -192,10 +168,9 @@ def admin_required(f):
 
             return jsonify(
                 {
-                    "error":
-                    "Forbidden"
+                    "error": "Forbidden"
                 }
-            ),403
+            ), 403
 
 
 
@@ -207,13 +182,10 @@ def admin_required(f):
 
 
 
-
 # ─── ROUTES ────────────────────────────────
-
 
 @app.route("/")
 def index():
-
 
     if not session.get("username"):
 
@@ -228,21 +200,16 @@ def index():
 
 
 
-
 @app.route("/api/me")
 @login_required
 def api_me():
 
     return jsonify(
         {
-            "username":
-            session.get("username"),
-
-            "role":
-            session.get("role")
+            "username": session.get("username"),
+            "role": session.get("role")
         }
     )
-
 
 
 
@@ -252,37 +219,28 @@ def video_feed():
 
     return Response(
         gen_frames(),
-        mimetype=
-        "multipart/x-mixed-replace; boundary=frame"
+        mimetype="multipart/x-mixed-replace; boundary=frame"
     )
-
 
 
 
 # ─── LOGIN ────────────────────────────────
 
-
-@app.route(
-    "/api/login",
-    methods=["POST"]
-)
+@app.route("/api/login", methods=["POST"])
 @block_if_locked
 def api_login():
 
-
     ip_addr = get_real_ip()
-
 
 
     if request.content_length and request.content_length > 4096:
 
         return jsonify(
             {
-                "success":False,
-                "message":"Request too large"
+                "success": False,
+                "message": "Request too large"
             }
-        ),413
-
+        ), 413
 
 
     body = request.get_json(
@@ -291,9 +249,8 @@ def api_login():
     ) or {}
 
 
-
     username = sanitise_username(
-        body.get("username","")
+        body.get("username", "")
     )
 
 
@@ -301,25 +258,22 @@ def api_login():
 
         return jsonify(
             {
-                "success":False,
-                "message":"Invalid username"
+                "success": False,
+                "message": "Invalid username"
             }
-        ),400
-
+        ), 400
 
 
     password = (
-        body.get("password","")
+        body.get("password", "")
         .strip()[:128]
     )
 
 
-
-    success,result = verify_login(
+    success, result = verify_login(
         username,
         password
     )
-
 
 
     if success:
@@ -336,25 +290,19 @@ def api_login():
 
         session.clear()
 
-        session["username"]=username
-
-        session["role"]=result
-
-        session.permanent=True
-
+        session["username"] = username
+        session["role"] = result
+        session.permanent = True
 
 
         return jsonify(
             {
-                "success":True,
-                "username":username,
-                "role":result
+                "success": True,
+                "username": username,
+                "role": result
             }
         )
-
-
-
-    log_login_event(
+        log_login_event(
         username,
         "Failed",
         result,
@@ -377,25 +325,25 @@ def api_login():
 
         return jsonify(
             {
-                "success":False,
-                "message":"IP blocked",
-                "blocked":True
+                "success": False,
+                "message": "IP blocked",
+                "blocked": True
             }
-        ),429
+        ), 429
 
 
 
     return jsonify(
         {
-            "success":False,
-            "message":result,
-            "attempts_remaining":
-            rate["remaining"]
+            "success": False,
+            "message": result,
+            "attempts_remaining": rate["remaining"]
         }
     )
 
-# ─── LOGOUT ────────────────────────────────
 
+
+# ─── LOGOUT ────────────────────────────────
 
 @app.route("/api/logout", methods=["POST"])
 @login_required
@@ -418,21 +366,18 @@ def api_logout():
 
     return jsonify(
         {
-            "success":True
+            "success": True
         }
     )
 
 
 
 
-
 # ─── ADD USER ──────────────────────────────
-
 
 @app.route("/api/add_user", methods=["POST"])
 @admin_required
 def api_add_user():
-
 
     body = request.get_json(
         force=True,
@@ -440,27 +385,25 @@ def api_add_user():
     ) or {}
 
 
-
     new_username = sanitise_username(
-        body.get("username","")
+        body.get("username", "")
     )
 
 
     password = (
-        body.get("password","")
+        body.get("password", "")
         .strip()
     )
-
 
 
     if new_username is None:
 
         return jsonify(
             {
-                "success":False,
-                "message":"Invalid username"
+                "success": False,
+                "message": "Invalid username"
             }
-        ),400
+        ), 400
 
 
 
@@ -468,16 +411,14 @@ def api_add_user():
 
         return jsonify(
             {
-                "success":False,
-                "message":
-                "Password too short"
+                "success": False,
+                "message": "Password too short"
             }
-        ),400
+        ), 400
 
 
 
-
-    success,message = create_user(
+    success, message = create_user(
         new_username,
         password
     )
@@ -486,19 +427,19 @@ def api_add_user():
 
     if success:
 
-        conn=None
+        conn = None
 
         try:
 
-            conn=db_connect()
+            conn = db_connect()
 
-            cur=conn.cursor()
+            cur = conn.cursor()
 
 
             cur.execute(
                 """
                 INSERT INTO audit_logs
-                (ip_address,action,status)
+                (ip_address, action, status)
                 VALUES (%s,%s,%s)
                 """,
                 (
@@ -514,7 +455,6 @@ def api_add_user():
             cur.close()
 
 
-
         finally:
 
             if conn:
@@ -524,31 +464,28 @@ def api_add_user():
 
     return jsonify(
         {
-            "success":success,
-            "message":message
+            "success": success,
+            "message": message
         }
     )
 
 
 
 
-
 # ─── LOGS ──────────────────────────────────
-
 
 @app.route("/api/logs")
 @login_required
 def api_logs():
 
-
-    conn=None
+    conn = None
 
 
     try:
 
-        conn=db_connect()
+        conn = db_connect()
 
-        cur=conn.cursor()
+        cur = conn.cursor()
 
 
         cur.execute(
@@ -565,10 +502,10 @@ def api_logs():
         )
 
 
-        rows=cur.fetchall()
+        rows = cur.fetchall()
 
 
-        logs=[]
+        logs = []
 
 
         for r in rows:
@@ -581,11 +518,9 @@ def api_logs():
                     )
                     if r[0] else "",
 
-                    "ip":r[1],
-
-                    "act":r[2],
-
-                    "stat":r[3]
+                    "ip": r[1],
+                    "act": r[2],
+                    "stat": r[3]
                 }
             )
 
@@ -605,9 +540,7 @@ def api_logs():
 
 
 
-
 # ─── THREATS ───────────────────────────────
-
 
 @app.route("/api/threats")
 @login_required
@@ -620,14 +553,11 @@ def api_threats():
 
 
 
-
 # ─── BLOCKED IPS ───────────────────────────
-
 
 @app.route("/api/blocked")
 @admin_required
 def api_blocked():
-
 
     from security import get_blocked_ips
 
@@ -639,25 +569,21 @@ def api_blocked():
 
 
 
-
 # ─── HEALTH CHECK ──────────────────────────
-
 
 @app.route("/health")
 def health():
 
     return jsonify(
         {
-            "status":"ok"
+            "status": "ok"
         }
     )
 
 
 
 
-
 # ─── START ─────────────────────────────────
-
 
 if __name__ == "__main__":
 
