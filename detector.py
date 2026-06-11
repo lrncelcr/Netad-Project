@@ -18,7 +18,7 @@ if not DB_URL:
 
 # ─── CONFIG ───────────────────────────────────────────────
 
-CAMERA_IP = "192.168.100.4"
+CAMERA_IP = "192.168.100.218"
 
 PORT_SCAN_THRESHOLD = 2
 PING_FLOOD_THRESHOLD = 3
