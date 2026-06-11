@@ -1,8 +1,6 @@
 flask
 psycopg2-binary
 python-dotenv
-scapy
 opencv-python-headless
 gunicorn
 Pillow
-customtkinter 

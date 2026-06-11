@@ -13,8 +13,6 @@ from auth import (
     create_user
 )
 
-from detector import start_detector
-
 from security import (
     block_if_locked,
     record_failed_login,
@@ -25,6 +23,10 @@ from security import (
     add_security_headers,
     get_recent_threats,
 )
+
+# Only import detector locally — scapy is not available on Railway
+if not os.getenv("RAILWAY_ENVIRONMENT"):
+    from detector import start_detector
 
 
 load_dotenv()
@@ -378,6 +380,8 @@ def api_login():
             "attempts_remaining": rate["remaining"]
         }
     )
+
+
 # ─── LOGOUT ────────────────────────────────
 
 @app.route("/api/logout", methods=["POST"])
@@ -548,7 +552,6 @@ def api_threats():
     return jsonify(
         get_recent_threats()
     )
-
 
 
 
