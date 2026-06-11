@@ -68,7 +68,7 @@ os.makedirs(
 
 
 # Get CCTV URL from .env
-env_camera = os.getenv("CCTV_URL")
+env_camera = os.getenv("CCTV_URL", "").strip()
 
 
 # Disable camera on Railway
