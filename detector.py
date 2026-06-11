@@ -36,8 +36,6 @@ port_scan_tracker = defaultdict(set)
 ping_tracker = defaultdict(list)
 udp_tracker = defaultdict(set)
 
-
-
 # ─── DB LOGGING ───────────────────────────────────────────
 
 def log_to_db(ip: str, action: str, status: str):
