@@ -158,8 +158,6 @@ def admin_required(f):
 
 # ─── ROUTES ────────────────────────────────
 
-# ─── ROUTES ────────────────────────────────
-
 @app.route("/")
 def index():
     if not session.get("username"):
@@ -168,6 +166,15 @@ def index():
     # Pass the cloud tunnel URL directly to the frontend template context
     return render_template("dashboard.html", cctv_src=os.getenv("CCTV_URL", ""))
 
+# ─── CURRENT SESSION USER ────────────────────────
+
+@app.route("/api/me")
+@login_required
+def api_me():
+    return jsonify({
+        "username": session.get("username", ""),
+        "role": session.get("role", "")
+    })
 
 @app.route("/video_feed")
 @login_required
