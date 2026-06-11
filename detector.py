@@ -28,6 +28,7 @@ TRACKER_RESET_SEC = 300
 DB_PORT = 31529
 
 
+
 # ─── STATE ────────────────────────────────────────────────
 
 _lock = threading.Lock()
@@ -57,7 +58,7 @@ def log_to_db(ip: str, action: str, status: str):
             """
             INSERT INTO audit_logs
             (ip_address, action, status)
-            VALUES (%s,%s,%s)
+            VALUES (%s, %s, %s)
             """,
             (
                 ip,
@@ -86,6 +87,7 @@ def log_to_db(ip: str, action: str, status: str):
 
         if conn:
             conn.close()
+
 
 
 
@@ -127,7 +129,6 @@ def handle_icmp(src_ip, packet):
             "Critical"
         )
 
-
     else:
 
         log_to_db(
@@ -138,20 +139,16 @@ def handle_icmp(src_ip, packet):
 
 
 
-def handle_tcp(src_ip, packet):
 
+def handle_tcp(src_ip, packet):
 
     flags = int(packet[TCP].flags)
 
     port = packet[TCP].dport
 
 
-
-    # ignore database traffic
-
     if port == DB_PORT:
         return
-
 
 
     SYN = 0x002
@@ -160,10 +157,7 @@ def handle_tcp(src_ip, packet):
 
 
 
-    # SYN SCAN
-
     if flags == SYN:
-
 
         with _lock:
 
@@ -178,9 +172,7 @@ def handle_tcp(src_ip, packet):
             )
 
 
-
         if count >= PORT_SCAN_THRESHOLD:
-
 
             summary = str(
                 ports_list[:8]
@@ -195,12 +187,11 @@ def handle_tcp(src_ip, packet):
 
 
             with _lock:
+
                 port_scan_tracker[src_ip] = set()
 
 
-
         else:
-
 
             log_to_db(
                 src_ip,
@@ -210,9 +201,7 @@ def handle_tcp(src_ip, packet):
 
 
 
-    # RST SCAN
-
-    elif (flags & RST) and port in (554,80,8080,443):
+    elif (flags & RST) and port in (554, 80, 8080, 443):
 
         log_to_db(
             src_ip,
@@ -221,8 +210,6 @@ def handle_tcp(src_ip, packet):
         )
 
 
-
-    # FIN SCAN
 
     elif flags == FIN:
 
@@ -234,8 +221,6 @@ def handle_tcp(src_ip, packet):
 
 
 
-    # NULL SCAN
-
     elif flags == 0:
 
         log_to_db(
@@ -245,8 +230,6 @@ def handle_tcp(src_ip, packet):
         )
 
 
-
-    # FIXED XMAS SCAN
 
     elif (flags & 0x029) == 0x029:
 
@@ -273,9 +256,7 @@ def handle_udp(src_ip, packet):
         )
 
 
-
     if count >= PORT_SCAN_THRESHOLD:
-
 
         log_to_db(
             src_ip,
@@ -285,12 +266,11 @@ def handle_udp(src_ip, packet):
 
 
         with _lock:
+
             udp_tracker[src_ip] = set()
 
 
-
     else:
-
 
         log_to_db(
             src_ip,
@@ -301,30 +281,23 @@ def handle_udp(src_ip, packet):
 
 
 
-
-# ─── MAIN CALLBACK ────────────────────────────────────────
-
+# ─── CALLBACK ─────────────────────────────────────────────
 
 def packet_callback(packet):
 
-
     if not packet.haslayer(IP):
         return
-
 
 
     if packet[IP].dst != CAMERA_IP:
         return
 
 
-
     src_ip = packet[IP].src
-
 
 
     if src_ip.startswith("127."):
         return
-
 
 
     if packet.haslayer(ICMP):
@@ -355,7 +328,6 @@ def packet_callback(packet):
 
 # ─── CLEANUP ──────────────────────────────────────────────
 
-
 def _reset_trackers():
 
     with _lock:
@@ -365,7 +337,6 @@ def _reset_trackers():
         ping_tracker.clear()
 
         udp_tracker.clear()
-
 
 
     threading.Timer(
@@ -378,18 +349,23 @@ def _reset_trackers():
 
 # ─── START ────────────────────────────────────────────────
 
-
 def start_detector():
 
     print("=" * 60)
-    print("🛡 Netad – Network Intrusion Detector ACTIVE")
-    print(f"Target Camera IP: {CAMERA_IP}")
+
+    print(
+        "🛡 Netad – Network Intrusion Detector ACTIVE"
+    )
+
+    print(
+        f"Target Camera IP: {CAMERA_IP}"
+    )
+
     print("=" * 60)
 
 
 
     _reset_trackers()
-
 
 
     try:
@@ -416,8 +392,6 @@ def start_detector():
 
 
 
-
-# FIXED MAIN LOCATION
 
 if __name__ == "__main__":
 
