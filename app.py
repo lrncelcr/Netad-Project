@@ -216,7 +216,7 @@ def api_login():
             "role":     result
         })
 
-    log_login_event(username, "Failed", result, ip_addr)
+    log_login_event(username, "Failed", ip_address=ip_addr)
 
     rate = record_failed_login(ip_addr)
 
