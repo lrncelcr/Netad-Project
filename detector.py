@@ -28,15 +28,12 @@ TRACKER_RESET_SEC = 300
 DB_PORT = 31529
 
 
-
 # ─── STATE ────────────────────────────────────────────────
 
 _lock = threading.Lock()
 
 port_scan_tracker = defaultdict(set)
-
 ping_tracker = defaultdict(list)
-
 udp_tracker = defaultdict(set)
 
 
@@ -53,7 +50,6 @@ def log_to_db(ip: str, action: str, status: str):
 
         cur = conn.cursor()
 
-
         cur.execute(
             """
             INSERT INTO audit_logs
@@ -67,11 +63,9 @@ def log_to_db(ip: str, action: str, status: str):
             )
         )
 
-
         conn.commit()
 
         cur.close()
-
 
         print(
             f"🚨 ALERT: {status} | {action} from {ip}"
@@ -90,9 +84,7 @@ def log_to_db(ip: str, action: str, status: str):
 
 
 
-
 # ─── PACKET HANDLERS ──────────────────────────────────────
-
 
 def handle_icmp(src_ip, packet):
 
@@ -105,16 +97,12 @@ def handle_icmp(src_ip, packet):
 
     with _lock:
 
-        pings = ping_tracker[src_ip]
-
-        pings.append(now)
-
+        ping_tracker[src_ip].append(now)
 
         ping_tracker[src_ip] = [
-            t for t in pings
+            t for t in ping_tracker[src_ip]
             if (now - t).seconds < 10
         ]
-
 
         count = len(
             ping_tracker[src_ip]
@@ -139,7 +127,6 @@ def handle_icmp(src_ip, packet):
 
 
 
-
 def handle_tcp(src_ip, packet):
 
     flags = int(packet[TCP].flags)
@@ -156,7 +143,6 @@ def handle_tcp(src_ip, packet):
     FIN = 0x001
 
 
-
     if flags == SYN:
 
         with _lock:
@@ -167,28 +153,23 @@ def handle_tcp(src_ip, packet):
                 port_scan_tracker[src_ip]
             )
 
-            ports_list = sorted(
+            ports = sorted(
                 port_scan_tracker[src_ip]
             )
 
 
         if count >= PORT_SCAN_THRESHOLD:
 
-            summary = str(
-                ports_list[:8]
-            )[1:-1]
-
-
             log_to_db(
                 src_ip,
-                f"Port Scan ({count} ports: {summary})",
+                f"Port Scan ({count} ports: {ports[:8]})",
                 "Critical"
             )
 
 
             with _lock:
 
-                port_scan_tracker[src_ip] = set()
+                port_scan_tracker[src_ip].clear()
 
 
         else:
@@ -200,7 +181,6 @@ def handle_tcp(src_ip, packet):
             )
 
 
-
     elif (flags & RST) and port in (554, 80, 8080, 443):
 
         log_to_db(
@@ -208,7 +188,6 @@ def handle_tcp(src_ip, packet):
             f"TCP RST to Camera Port {port}",
             "Alert"
         )
-
 
 
     elif flags == FIN:
@@ -220,7 +199,6 @@ def handle_tcp(src_ip, packet):
         )
 
 
-
     elif flags == 0:
 
         log_to_db(
@@ -230,7 +208,6 @@ def handle_tcp(src_ip, packet):
         )
 
 
-
     elif (flags & 0x029) == 0x029:
 
         log_to_db(
@@ -238,7 +215,6 @@ def handle_tcp(src_ip, packet):
             f"TCP XMAS Scan to Port {port}",
             "Critical"
         )
-
 
 
 
@@ -267,7 +243,7 @@ def handle_udp(src_ip, packet):
 
         with _lock:
 
-            udp_tracker[src_ip] = set()
+            udp_tracker[src_ip].clear()
 
 
     else:
@@ -277,7 +253,6 @@ def handle_udp(src_ip, packet):
             f"UDP Probe to Port {port}",
             "Alert"
         )
-
 
 
 
@@ -325,7 +300,6 @@ def packet_callback(packet):
 
 
 
-
 # ─── CLEANUP ──────────────────────────────────────────────
 
 def _reset_trackers():
@@ -333,9 +307,7 @@ def _reset_trackers():
     with _lock:
 
         port_scan_tracker.clear()
-
         ping_tracker.clear()
-
         udp_tracker.clear()
 
 
@@ -346,23 +318,14 @@ def _reset_trackers():
 
 
 
-
 # ─── START ────────────────────────────────────────────────
 
 def start_detector():
 
     print("=" * 60)
-
-    print(
-        "🛡 Netad – Network Intrusion Detector ACTIVE"
-    )
-
-    print(
-        f"Target Camera IP: {CAMERA_IP}"
-    )
-
+    print("🛡 Netad – Network Intrusion Detector ACTIVE")
+    print(f"Target Camera IP: {CAMERA_IP}")
     print("=" * 60)
-
 
 
     _reset_trackers()
@@ -389,7 +352,6 @@ def start_detector():
         print(
             f"[DETECTOR ERROR] {e}"
         )
-
 
 
 
