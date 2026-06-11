@@ -436,7 +436,7 @@ def add_security_headers(response):
 
         "font-src https://fonts.gstatic.com; "
 
-        "img-src 'self' data: blob:;"
+        "img-src 'self' data: blob: https://*.trycloudflare.com *;"
 
     )
 
