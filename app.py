@@ -25,7 +25,7 @@ from security import (
 )
 
 # Only import detector locally — scapy is not available on Railway
-if not os.getenv("RAILWAY_ENVIRONMENT"):
+if not os.getenv("RAILWAY_ENVIRONMENT_NAME"):
     from detector import start_detector
 
 
@@ -75,7 +75,7 @@ env_camera = os.getenv("CCTV_URL", "").strip()
 if (
     env_camera
     and env_camera.strip()
-    and not os.getenv("RAILWAY_ENVIRONMENT")
+    and not os.getenv("RAILWAY_ENVIRONMENT_NAME")
 ):
     CAMERA_SRC = env_camera
     print(f"Using CCTV: {CAMERA_SRC}")
@@ -549,7 +549,9 @@ def health():
 
 if __name__ == "__main__":
 
-    if not os.getenv("RAILWAY_ENVIRONMENT"):
+    # Only import detector locally — scapy is not available on Railway
+    if not os.getenv("RAILWAY_ENVIRONMENT_NAME"):
+        from detector import start_detector
 
         detector_thread = threading.Thread(
             target=start_detector,
