@@ -67,25 +67,58 @@ os.makedirs(
 )
 
 
+# Get CCTV URL from .env
 env_camera = os.getenv("CCTV_URL")
 
 
-if env_camera:
+# Disable camera on Railway
+if (
+    env_camera
+    and env_camera.strip()
+    and not os.getenv("RAILWAY_ENVIRONMENT")
+):
 
     CAMERA_SRC = env_camera
-    cap = cv2.VideoCapture(CAMERA_SRC)
+
+    print(
+        f"Using CCTV: {CAMERA_SRC}"
+    )
+
+else:
+
+    CAMERA_SRC = None
+
+    print(
+        "Camera disabled"
+    )
+
+
+
+if CAMERA_SRC:
+
+    cap = cv2.VideoCapture(
+        CAMERA_SRC
+    )
+
+    cap.set(
+        cv2.CAP_PROP_OPEN_TIMEOUT_MSEC,
+        5000
+    )
 
 else:
 
     cap = None
-    print("Camera disabled: no CCTV_URL")
+
 
 
 if cap and not cap.isOpened():
 
-    print("Camera source not found")
+    print(
+        "Camera source not found"
+    )
 
     cap = None
+
 
 
 
@@ -97,15 +130,17 @@ def gen_frames():
             break
 
 
-        if not cap.isOpened():
-            break
-
-
         success, frame = cap.read()
 
 
         if not success:
+
+            print(
+                "Failed to read camera frame"
+            )
+
             break
+
 
 
         _, buffer = cv2.imencode(
@@ -125,10 +160,7 @@ def gen_frames():
             + b"\r\n"
         )
 
-
-
 # ─── AUTH DECORATORS ──────────────────────
-
 
 def login_required(f):
 
