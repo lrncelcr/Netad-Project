@@ -166,7 +166,6 @@ def index():
 
 @app.route("/")
 def index():
-
     if not session.get("username"):
         return render_template("login.html")
 
