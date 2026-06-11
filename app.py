@@ -587,19 +587,16 @@ def health():
 
 if __name__ == "__main__":
 
-
     detector_thread = threading.Thread(
         target=start_detector,
         daemon=True
     )
 
-
     detector_thread.start()
-
 
 
     app.run(
         host="0.0.0.0",
-        port=8080,
-        debug=True
+        port=int(os.getenv("PORT", 8080)),
+        debug=False
     )
