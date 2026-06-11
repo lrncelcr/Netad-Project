@@ -164,14 +164,14 @@ def index():
     return render_template("dashboard.html")
 
 
-@app.route("/api/me")
-@login_required
-def api_me():
+@app.route("/")
+def index():
 
-    return jsonify({
-        "username": session.get("username"),
-        "role":     session.get("role")
-    })
+    if not session.get("username"):
+        return render_template("login.html")
+
+    # Pass the cloud tunnel URL directly to the frontend template context
+    return render_template("dashboard.html", cctv_src=os.getenv("CCTV_URL", ""))
 
 
 @app.route("/video_feed")
