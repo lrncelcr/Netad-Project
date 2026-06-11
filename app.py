@@ -155,14 +155,7 @@ def admin_required(f):
 
 # ─── ROUTES ────────────────────────────────
 
-@app.route("/")
-def index():
-
-    if not session.get("username"):
-        return render_template("login.html")
-
-    return render_template("dashboard.html")
-
+# ─── ROUTES ────────────────────────────────
 
 @app.route("/")
 def index():
@@ -176,7 +169,6 @@ def index():
 @app.route("/video_feed")
 @login_required
 def video_feed():
-
     return Response(
         gen_frames(),
         mimetype="multipart/x-mixed-replace; boundary=frame"
