@@ -72,12 +72,15 @@ os.makedirs(
 env_camera = os.getenv("CCTV_URL", "").strip()
 
 
-if env_camera and env_camera.strip():
+env_camera = os.getenv("CCTV_URL", "").strip()
+
+# Add the cloud environment check back so the backend doesn't hog the stream!
+if env_camera and env_camera.strip() and not os.getenv("RAILWAY_ENVIRONMENT_NAME"):
     CAMERA_SRC = env_camera
     print(f"Using CCTV: {CAMERA_SRC}")
 else:
     CAMERA_SRC = None
-    print("Camera disabled")
+    print("Camera disabled on cloud backend")
 
 
 if CAMERA_SRC:
