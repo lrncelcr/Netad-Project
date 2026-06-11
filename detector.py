@@ -160,4 +160,7 @@ def start_detector():
         sniff_filter = f"(icmp or tcp or udp) and dst host {CAMERA_IP} and not port {DB_PORT}"
         sniff(filter=sniff_filter, prn=packet_callback, store=0)
     except Exception as e:
-        print(f"[DETECTOR ERROR] {e}")
+        print(f"[DETECTOR ERROR] {e}")  
+
+    if __name__ == "__main__":
+        start_detector()
