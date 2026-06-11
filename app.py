@@ -247,9 +247,10 @@ def api_get_users():
         cur = conn.cursor()
         
         cur.execute("""
-            SELECT username, role, NULL as last_login, FALSE as is_recent 
-            FROM users 
-            ORDER BY username ASC
+            SELECT u.username, u.role, 
+                   (SELECT MAX(timestamp) FROM login_logs WHERE username = u.username AND status = 'Success') as last_login,
+                   (SELECT MAX(timestamp) >= NOW() - INTERVAL '1 hour' FROM login_logs WHERE username = u.username AND status = 'Success') as is_recent
+            FROM users u ORDER BY u.username ASC
         """)
         rows = cur.fetchall()
         cur.close(); conn.close()
