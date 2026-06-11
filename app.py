@@ -29,12 +29,14 @@ from security import (
 
 load_dotenv()
 
+
 app = Flask(__name__)
 
 
 # ─── SESSION ───────────────────────────────
 
 app.secret_key = os.getenv("SECRET_KEY")
+
 
 if not app.secret_key or len(app.secret_key) < 32:
     raise RuntimeError(
@@ -45,7 +47,7 @@ if not app.secret_key or len(app.secret_key) < 32:
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=os.getenv("FLASK_ENV") == "production",
+    SESSION_COOKIE_SECURE=False,
     PERMANENT_SESSION_LIFETIME=3600,
     MAX_CONTENT_LENGTH=1024 * 1024
 )
@@ -59,24 +61,31 @@ app.after_request(add_security_headers)
 
 ALERTS_DIR = "security_alerts"
 
-os.makedirs(ALERTS_DIR, exist_ok=True)
+os.makedirs(
+    ALERTS_DIR,
+    exist_ok=True
+)
 
 
 env_camera = os.getenv("CCTV_URL")
 
 
-if env_camera and env_camera.strip():
+if env_camera:
+
     CAMERA_SRC = env_camera
+    cap = cv2.VideoCapture(CAMERA_SRC)
+
 else:
-    CAMERA_SRC = 0
+
+    cap = None
+    print("Camera disabled: no CCTV_URL")
 
 
+if cap and not cap.isOpened():
 
-cap = cv2.VideoCapture(CAMERA_SRC)
-
-
-if not cap.isOpened():
     print("Camera source not found")
+
+    cap = None
 
 
 
@@ -84,7 +93,11 @@ def gen_frames():
 
     while True:
 
-        if cap is None or not cap.isOpened():
+        if cap is None:
+            break
+
+
+        if not cap.isOpened():
             break
 
 
@@ -114,8 +127,8 @@ def gen_frames():
 
 
 
-
 # ─── AUTH DECORATORS ──────────────────────
+
 
 def login_required(f):
 
@@ -163,7 +176,6 @@ def admin_required(f):
         ).lower()
 
 
-
         if role != "admin" and username != "admin":
 
             return jsonify(
@@ -171,7 +183,6 @@ def admin_required(f):
                     "error": "Forbidden"
                 }
             ), 403
-
 
 
         return f(*args, **kwargs)
@@ -183,6 +194,7 @@ def admin_required(f):
 
 
 # ─── ROUTES ────────────────────────────────
+
 
 @app.route("/")
 def index():
@@ -226,21 +238,12 @@ def video_feed():
 
 # ─── LOGIN ────────────────────────────────
 
+
 @app.route("/api/login", methods=["POST"])
 @block_if_locked
 def api_login():
 
     ip_addr = get_real_ip()
-
-
-    if request.content_length and request.content_length > 4096:
-
-        return jsonify(
-            {
-                "success": False,
-                "message": "Request too large"
-            }
-        ), 413
 
 
     body = request.get_json(
@@ -254,6 +257,12 @@ def api_login():
     )
 
 
+    password = (
+        body.get("password", "")
+        .strip()[:128]
+    )
+
+
     if username is None:
 
         return jsonify(
@@ -264,16 +273,12 @@ def api_login():
         ), 400
 
 
-    password = (
-        body.get("password", "")
-        .strip()[:128]
-    )
-
 
     success, result = verify_login(
         username,
         password
     )
+
 
 
     if success:
@@ -302,7 +307,9 @@ def api_login():
                 "role": result
             }
         )
-        log_login_event(
+
+
+    log_login_event(
         username,
         "Failed",
         result,
@@ -332,7 +339,6 @@ def api_login():
         ), 429
 
 
-
     return jsonify(
         {
             "success": False,
@@ -340,9 +346,6 @@ def api_login():
             "attempts_remaining": rate["remaining"]
         }
     )
-
-
-
 # ─── LOGOUT ────────────────────────────────
 
 @app.route("/api/logout", methods=["POST"])
@@ -374,6 +377,7 @@ def api_logout():
 
 
 # ─── ADD USER ──────────────────────────────
+
 
 @app.route("/api/add_user", methods=["POST"])
 @admin_required
@@ -424,44 +428,6 @@ def api_add_user():
     )
 
 
-
-    if success:
-
-        conn = None
-
-        try:
-
-            conn = db_connect()
-
-            cur = conn.cursor()
-
-
-            cur.execute(
-                """
-                INSERT INTO audit_logs
-                (ip_address, action, status)
-                VALUES (%s,%s,%s)
-                """,
-                (
-                    get_real_ip(),
-                    f"Created user {new_username}",
-                    "Info"
-                )
-            )
-
-
-            conn.commit()
-
-            cur.close()
-
-
-        finally:
-
-            if conn:
-                conn.close()
-
-
-
     return jsonify(
         {
             "success": success,
@@ -474,12 +440,12 @@ def api_add_user():
 
 # ─── LOGS ──────────────────────────────────
 
+
 @app.route("/api/logs")
 @login_required
 def api_logs():
 
     conn = None
-
 
     try:
 
@@ -508,19 +474,19 @@ def api_logs():
         logs = []
 
 
-        for r in rows:
+        for row in rows:
 
             logs.append(
                 {
                     "ts":
-                    r[0].strftime(
+                    row[0].strftime(
                         "%Y-%m-%d %H:%M:%S"
                     )
-                    if r[0] else "",
+                    if row[0] else "",
 
-                    "ip": r[1],
-                    "act": r[2],
-                    "stat": r[3]
+                    "ip": row[1],
+                    "act": row[2],
+                    "stat": row[3]
                 }
             )
 
@@ -542,6 +508,7 @@ def api_logs():
 
 # ─── THREATS ───────────────────────────────
 
+
 @app.route("/api/threats")
 @login_required
 def api_threats():
@@ -553,7 +520,9 @@ def api_threats():
 
 
 
+
 # ─── BLOCKED IPS ───────────────────────────
+
 
 @app.route("/api/blocked")
 @admin_required
@@ -571,6 +540,7 @@ def api_blocked():
 
 # ─── HEALTH CHECK ──────────────────────────
 
+
 @app.route("/health")
 def health():
 
@@ -585,14 +555,19 @@ def health():
 
 # ─── START ─────────────────────────────────
 
+
 if __name__ == "__main__":
 
-    detector_thread = threading.Thread(
-        target=start_detector,
-        daemon=True
-    )
 
-    detector_thread.start()
+    # Disable detector on Railway
+    if not os.getenv("RAILWAY_ENVIRONMENT"):
+
+        detector_thread = threading.Thread(
+            target=start_detector,
+            daemon=True
+        )
+
+        detector_thread.start()
 
 
     app.run(
